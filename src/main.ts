@@ -1,11 +1,19 @@
-import { Plugin } from "obsidian";
-import { PluginSettings, DEFAULT_SETTINGS } from "./types";
+import { Plugin, TFolder, TAbstractFile, Menu, Notice } from "obsidian";
+import { PluginSettings, DEFAULT_SETTINGS, TitleTemplate } from "./types";
+import { FileService } from "./services";
+import { openTemplateSelectModal } from "./modals";
+import { FileTemplateSettingsTab } from "./settings";
+import { parseTitleTemplateToFilename, getTemplatesSettings } from "./utils";
 
 export default class FileTemplatePlugin extends Plugin {
   settings: PluginSettings = DEFAULT_SETTINGS;
+  private fileService!: FileService;
 
   async onload(): Promise<void> {
     await this.loadSettings();
+
+    // Initialize services
+    this.fileService = new FileService(this.app);
 
     // Register main command to open template selection modal
     this.addCommand({
@@ -23,11 +31,16 @@ export default class FileTemplatePlugin extends Plugin {
     this.registerTemplateCommands();
 
     // Add settings tab
-    // TODO: Implement settings tab
+    this.addSettingTab(new FileTemplateSettingsTab(this.app, this));
+
+    // Add ribbon icon for quick access (especially useful on mobile)
+    this.addRibbonIcon("file-plus", "Create New Templated File", () => {
+      this.openTemplateModal();
+    });
   }
 
   async onunload(): Promise<void> {
-    // Cleanup if needed
+    // Cleanup handled automatically by Obsidian
   }
 
   async loadSettings(): Promise<void> {
@@ -38,30 +51,153 @@ export default class FileTemplatePlugin extends Plugin {
     await this.saveData(this.settings);
   }
 
-  private openTemplateModal(): void {
-    // TODO: Implement template selection modal
-    console.log("Opening template modal...");
+  /**
+   * Called when settings change (from settings tab)
+   * Used to notify that commands may need re-registration
+   */
+  onSettingsChange(): void {
+    // Note: Commands registered with addCommand persist until plugin reload
+    // New templates will have commands registered, but removed templates
+    // will still have their commands until reload
+    this.registerTemplateCommands();
   }
 
+  /**
+   * Opens the template selection modal
+   * @param targetFolder - Optional folder override (from context menu)
+   */
+  private openTemplateModal(targetFolder?: TFolder): void {
+    if (this.settings.templates.length === 0) {
+      new Notice("No templates configured. Add templates in settings.");
+      return;
+    }
+
+    openTemplateSelectModal(
+      this.app,
+      this.settings.templates,
+      (template, folder) => {
+        this.createFileFromTemplate(template, folder);
+      },
+      targetFolder
+    );
+  }
+
+  /**
+   * Registers the folder context menu item
+   */
   private registerFolderContextMenu(): void {
-    // TODO: Implement folder context menu
+    this.registerEvent(
+      this.app.workspace.on(
+        "file-menu",
+        (menu: Menu, file: TAbstractFile, source: string) => {
+          // Only add menu item for folders
+          if (!(file instanceof TFolder)) {
+            return;
+          }
+
+          menu.addItem((item) => {
+            item
+              .setTitle("New Templated File")
+              .setIcon("file-plus")
+              .onClick(() => {
+                this.openTemplateModal(file);
+              });
+          });
+        }
+      )
+    );
   }
 
+  /**
+   * Registers commands for each user-defined template
+   */
   private registerTemplateCommands(): void {
-    // Register a command for each user-defined template
+    // Register a command for each template
     for (const template of this.settings.templates) {
+      const commandId = `create-${template.id}`;
+
+      // Check if command already exists (avoid duplicates)
+      // Note: Obsidian doesn't provide a way to check, so we just add
+      // Duplicates are handled by Obsidian internally
       this.addCommand({
-        id: `create-${template.id}`,
+        id: commandId,
         name: `Create a new ${template.name} File`,
         callback: () => {
-          this.createFileFromTemplate(template.id);
+          this.createFileFromTemplate(template);
         },
       });
     }
   }
 
-  private createFileFromTemplate(templateId: string): void {
-    // TODO: Implement file creation from template
-    console.log(`Creating file from template: ${templateId}`);
+  /**
+   * Creates a new file from a template
+   * @param template - The template to use
+   * @param targetFolder - Optional folder override
+   */
+  private async createFileFromTemplate(
+    template: TitleTemplate,
+    targetFolder?: TFolder
+  ): Promise<void> {
+    try {
+      // Determine the target folder
+      let folderPath: string;
+      if (targetFolder) {
+        // Use the provided folder (from context menu)
+        folderPath = targetFolder.path;
+      } else if (template.folder === "current") {
+        // Use the current folder
+        folderPath = this.fileService.getCurrentFolder();
+      } else {
+        // Use the template's configured folder
+        folderPath = template.folder;
+      }
+
+      // Generate the filename from the title pattern
+      // Uses user's date/time format settings from Templates plugin
+      const templatesSettings = getTemplatesSettings(this.app);
+      const filename = parseTitleTemplateToFilename(template.titlePattern, templatesSettings);
+
+      // Get file template content if specified
+      let content = "";
+      if (template.fileTemplate) {
+        const templateContent = await this.fileService.getTemplateContent(
+          template.fileTemplate
+        );
+        if (templateContent) {
+          content = this.fileService.processFileTemplate(templateContent, filename);
+        } else {
+          new Notice(`Template file not found: ${template.fileTemplate}`);
+        }
+      }
+
+      // Create the file
+      const result = await this.fileService.createFile(folderPath, filename, content);
+
+      // Notify user
+      if (result.conflictResolved) {
+        new Notice(`Created: ${result.finalFilename}.md (renamed to avoid conflict)`);
+      } else {
+        new Notice(`Created: ${result.finalFilename}.md`);
+      }
+
+      // Open the new file
+      await this.fileService.openFile(result.file);
+    } catch (error) {
+      console.error("Failed to create file from template:", error);
+      new Notice(`Failed to create file: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  }
+
+  /**
+   * Creates a file from a template by ID
+   * Used by per-template commands
+   */
+  private createFileFromTemplateById(templateId: string): void {
+    const template = this.settings.templates.find((t) => t.id === templateId);
+    if (!template) {
+      new Notice("Template not found. It may have been deleted.");
+      return;
+    }
+    this.createFileFromTemplate(template);
   }
 }

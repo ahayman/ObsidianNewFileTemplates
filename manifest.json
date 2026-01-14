@@ -1,6 +1,6 @@
 {
-  "id": "file-template-plugin",
-  "name": "File Template Plugin",
+  "id": "new-file-templates",
+  "name": "New File Templates",
   "version": "0.1.0",
   "minAppVersion": "1.0.0",
   "description": "Create new notes with templated titles and apply file templates",

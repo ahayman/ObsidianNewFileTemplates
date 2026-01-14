@@ -1,0 +1,263 @@
+/**
+ * Template Editor Component
+ *
+ * Form for creating or editing a title template.
+ */
+
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { TitleTemplate } from "../types";
+import { parseTitleTemplate, getTemplatesSettings, SUPPORTED_VARIABLES } from "../utils";
+import { useApp } from "./AppContext";
+import { TFolder, TFile } from "obsidian";
+import { SearchableSelect, SelectOption } from "./SearchableSelect";
+
+interface TemplateEditorProps {
+  /** Template to edit, or undefined for creating new */
+  template?: TitleTemplate;
+  /** Folder to look for file templates */
+  templateFolder: string;
+  /** Called when save is clicked */
+  onSave: (template: TitleTemplate) => void;
+  /** Called when cancel is clicked */
+  onCancel: () => void;
+}
+
+/**
+ * Generates a unique ID for new templates
+ */
+function generateId(): string {
+  return `template-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+export function TemplateEditor({ template, templateFolder, onSave, onCancel }: TemplateEditorProps) {
+  const app = useApp();
+
+  // Form state
+  const [name, setName] = useState(template?.name ?? "");
+  const [titlePattern, setTitlePattern] = useState(template?.titlePattern ?? "{{date}}-");
+  const [folder, setFolder] = useState(template?.folder ?? "current");
+  const [fileTemplate, setFileTemplate] = useState(template?.fileTemplate ?? "");
+
+  // Validation state
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Available folders and templates
+  const [folders, setFolders] = useState<string[]>([]);
+  const [templateFiles, setTemplateFiles] = useState<string[]>([]);
+
+  // Load folders and template files
+  useEffect(() => {
+    const allFiles = app.vault.getAllLoadedFiles();
+
+    // Get all folders
+    const folderList = allFiles
+      .filter((f): f is TFolder => f instanceof TFolder)
+      .map((f) => f.path)
+      .sort();
+    setFolders(["", ...folderList]);
+
+    // Get markdown files (potential templates)
+    // Filter to templateFolder if set, otherwise show all
+    const mdFiles = allFiles
+      .filter((f): f is TFile => f instanceof TFile && f.extension === "md")
+      .filter((f) => {
+        if (!templateFolder || templateFolder.trim() === "") {
+          // No template folder set, show all files
+          return true;
+        }
+        // Only show files within the template folder
+        return f.path.startsWith(templateFolder + "/") || f.path.startsWith(templateFolder);
+      })
+      .map((f) => f.path)
+      .sort();
+    setTemplateFiles(["", ...mdFiles]);
+  }, [app, templateFolder]);
+
+  // Validate form
+  const validate = useCallback((): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!name.trim()) {
+      newErrors.name = "Name is required";
+    }
+
+    if (!titlePattern.trim()) {
+      newErrors.titlePattern = "Title pattern is required";
+    }
+
+    if (!folder.trim() && folder !== "current") {
+      newErrors.folder = "Folder is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }, [name, titlePattern, folder]);
+
+  // Handle save
+  const handleSave = useCallback(() => {
+    if (!validate()) {
+      return;
+    }
+
+    const savedTemplate: TitleTemplate = {
+      id: template?.id ?? generateId(),
+      name: name.trim(),
+      titlePattern: titlePattern.trim(),
+      folder: folder.trim() || "current",
+      fileTemplate: fileTemplate.trim() || undefined,
+    };
+
+    onSave(savedTemplate);
+  }, [template, name, titlePattern, folder, fileTemplate, validate, onSave]);
+
+  // Insert variable at cursor (or append)
+  const insertVariable = useCallback((variable: string) => {
+    setTitlePattern((prev) => `${prev}{{${variable}}}`);
+  }, []);
+
+  // Preview the generated title using user's Templates settings
+  const templatesSettings = getTemplatesSettings(app);
+  const titlePreview = parseTitleTemplate(titlePattern || "{{date}}", templatesSettings);
+
+  // Convert folders to SelectOption format
+  const folderOptions: SelectOption[] = useMemo(() => {
+    const options: SelectOption[] = [
+      { value: "current", label: "Current Folder" },
+      { value: "/", label: "/ (Vault Root)" },
+    ];
+    folders
+      .filter((f) => f !== "")
+      .forEach((f) => {
+        options.push({ value: f, label: f });
+      });
+    return options;
+  }, [folders]);
+
+  // Convert template files to SelectOption format
+  const fileTemplateOptions: SelectOption[] = useMemo(() => {
+    const options: SelectOption[] = [{ value: "", label: "None" }];
+    templateFiles
+      .filter((f) => f !== "")
+      .forEach((f) => {
+        options.push({ value: f, label: f });
+      });
+    return options;
+  }, [templateFiles]);
+
+  const isEditing = !!template;
+
+  return (
+    <div className="file-template-editor">
+      {/* Name field */}
+      <div className="file-template-editor-field">
+        <label className="file-template-editor-label" htmlFor="template-name">
+          Template Name
+        </label>
+        <input
+          id="template-name"
+          type="text"
+          className="file-template-editor-input"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="e.g., Daily Note, Meeting Notes"
+        />
+        {errors.name && (
+          <div className="file-template-editor-error">{errors.name}</div>
+        )}
+        <div className="file-template-editor-hint">
+          This name appears in the command palette and template selection modal.
+        </div>
+      </div>
+
+      {/* Title Pattern field */}
+      <div className="file-template-editor-field">
+        <label className="file-template-editor-label" htmlFor="template-pattern">
+          Title Pattern
+        </label>
+        <input
+          id="template-pattern"
+          type="text"
+          className="file-template-editor-input"
+          value={titlePattern}
+          onChange={(e) => setTitlePattern(e.target.value)}
+          placeholder="e.g., {{date}}-{{time}}"
+        />
+        {errors.titlePattern && (
+          <div className="file-template-editor-error">{errors.titlePattern}</div>
+        )}
+        <div className="file-template-editor-hint">
+          Use variables to create dynamic filenames.
+        </div>
+
+        {/* Variable hints */}
+        <div className="file-template-variable-hints">
+          {SUPPORTED_VARIABLES.map((variable) => (
+            <button
+              key={variable}
+              type="button"
+              className="file-template-variable-hint"
+              onClick={() => insertVariable(variable)}
+              title={`Insert {{${variable}}}`}
+            >
+              {`{{${variable}}}`}
+            </button>
+          ))}
+        </div>
+
+        {/* Title preview */}
+        {titlePattern && (
+          <div className="file-template-editor-preview">
+            Preview: {titlePreview}.md
+          </div>
+        )}
+      </div>
+
+      {/* Folder field */}
+      <div className="file-template-editor-field">
+        <label className="file-template-editor-label" htmlFor="template-folder">
+          Target Folder
+        </label>
+        <SearchableSelect
+          id="template-folder"
+          value={folder}
+          options={folderOptions}
+          placeholder="Search folders..."
+          onChange={setFolder}
+        />
+        {errors.folder && (
+          <div className="file-template-editor-error">{errors.folder}</div>
+        )}
+        <div className="file-template-editor-hint">
+          "Current Folder" uses the folder of the currently active file.
+        </div>
+      </div>
+
+      {/* File Template field */}
+      <div className="file-template-editor-field">
+        <label className="file-template-editor-label" htmlFor="template-file">
+          File Template (Optional)
+        </label>
+        <SearchableSelect
+          id="template-file"
+          value={fileTemplate}
+          options={fileTemplateOptions}
+          placeholder="Search templates..."
+          onChange={setFileTemplate}
+        />
+        <div className="file-template-editor-hint">
+          Content from this file will be inserted into the new note.
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="file-template-editor-actions">
+        <button type="button" className="mod-muted" onClick={onCancel}>
+          Cancel
+        </button>
+        <button type="button" className="mod-cta" onClick={handleSave}>
+          {isEditing ? "Save Changes" : "Add Template"}
+        </button>
+      </div>
+    </div>
+  );
+}

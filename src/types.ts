@@ -1,5 +1,5 @@
 /**
- * Type definitions for the File Template Plugin
+ * Type definitions for the New File Templates
  */
 
 /**

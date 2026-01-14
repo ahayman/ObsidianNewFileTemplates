@@ -8,6 +8,20 @@ export class App {
   plugins = {
     getPlugin: jest.fn(),
   };
+  // Mock internal plugins API for Templates plugin access
+  internalPlugins = {
+    getPluginById: jest.fn(() => ({
+      enabled: true,
+      instance: {
+        options: {
+          folder: "Templates",
+          dateFormat: "YYYY-MM-DD",
+          timeFormat: "HH:mm",
+        },
+      },
+    })),
+    getEnabledPluginById: jest.fn(() => null),
+  };
 }
 
 export class Vault {
@@ -326,3 +340,76 @@ export const Platform = {
   isIosApp: false,
   isAndroidApp: false,
 };
+
+/**
+ * Mock moment.js implementation
+ * Creates a moment-like object with format() method
+ */
+interface MockMoment {
+  format: (formatStr: string) => string;
+}
+
+function createMockMoment(date?: Date | string): MockMoment {
+  const d = date ? new Date(date) : new Date();
+
+  return {
+    format: (formatStr: string): string => {
+      // Basic format implementation for common tokens
+      const pad = (n: number, len = 2) => String(n).padStart(len, "0");
+
+      const year = d.getFullYear();
+      const month = d.getMonth() + 1;
+      const day = d.getDate();
+      const hours = d.getHours();
+      const minutes = d.getMinutes();
+      const seconds = d.getSeconds();
+
+      let result = formatStr;
+
+      // Year
+      result = result.replace(/YYYY/g, String(year));
+      result = result.replace(/YY/g, String(year).slice(-2));
+
+      // Month
+      result = result.replace(/MM/g, pad(month));
+      result = result.replace(/M(?![oMa])/g, String(month));
+
+      // Day
+      result = result.replace(/DD/g, pad(day));
+      result = result.replace(/D(?![oa])/g, String(day));
+
+      // Hours (24h)
+      result = result.replace(/HH/g, pad(hours));
+      result = result.replace(/H(?!H)/g, String(hours));
+
+      // Hours (12h)
+      const hours12 = hours % 12 || 12;
+      result = result.replace(/hh/g, pad(hours12));
+      result = result.replace(/h(?!h)/g, String(hours12));
+
+      // Minutes
+      result = result.replace(/mm/g, pad(minutes));
+      result = result.replace(/m(?!m)/g, String(minutes));
+
+      // Seconds
+      result = result.replace(/ss/g, pad(seconds));
+      result = result.replace(/s(?!s)/g, String(seconds));
+
+      // AM/PM
+      const ampm = hours >= 12 ? "PM" : "AM";
+      result = result.replace(/A/g, ampm);
+      result = result.replace(/a/g, ampm.toLowerCase());
+
+      return result;
+    },
+  };
+}
+
+export function moment(date?: Date | string): MockMoment {
+  return createMockMoment(date);
+}
+
+// Also export moment as a namespace for types
+export namespace moment {
+  export type Moment = MockMoment;
+}

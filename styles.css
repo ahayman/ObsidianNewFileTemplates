@@ -1,16 +1,490 @@
-/* File Template Plugin Styles */
+/* New File Templates Styles */
 
-/* Template selection modal */
+/* ========================================
+   Template Selection Modal
+   ======================================== */
+
 .file-template-modal {
-  /* Modal styles will be added as needed */
+  /* Modal container - uses Obsidian defaults */
 }
 
-/* Settings styles */
+/* Individual suggestion item */
+.file-template-suggestion {
+  padding: 8px 12px;
+}
+
+.file-template-suggestion-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Template name */
+.file-template-suggestion-name {
+  font-weight: 500;
+  font-size: 1em;
+  color: var(--text-normal);
+}
+
+/* Metadata row (folder + file template) */
+.file-template-suggestion-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+/* Folder indicator */
+.file-template-suggestion-folder {
+  color: var(--text-muted);
+}
+
+/* File template indicator */
+.file-template-suggestion-file-template {
+  color: var(--text-faint);
+}
+
+/* Title pattern preview */
+.file-template-suggestion-pattern {
+  font-size: 0.8em;
+  color: var(--text-faint);
+  font-family: var(--font-monospace);
+}
+
+/* Empty state when no templates */
+.file-template-empty-state {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.file-template-empty-state p {
+  margin: 8px 0;
+}
+
+.file-template-empty-hint {
+  font-size: 0.9em;
+  color: var(--text-faint);
+}
+
+/* Fuzzy match highlighting */
+.file-template-suggestion .suggestion-highlight {
+  color: var(--text-accent);
+  font-weight: 600;
+}
+
+/* ========================================
+   Settings Tab
+   ======================================== */
+
 .file-template-settings {
-  /* Settings styles will be added as needed */
+  /* Settings container */
 }
 
 /* Template list in settings */
 .file-template-list {
-  /* Template list styles will be added as needed */
+  margin-top: 16px;
+}
+
+.file-template-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  margin-bottom: 8px;
+  background: var(--background-secondary);
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.file-template-list-item:hover {
+  border-color: var(--background-modifier-border-hover);
+}
+
+.file-template-list-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-template-list-item-name {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.file-template-list-item-details {
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+.file-template-list-item-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: 12px;
+}
+
+/* Template editor form */
+.file-template-editor {
+  padding: 16px;
+  background: var(--background-secondary);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.file-template-editor-field {
+  margin-bottom: 16px;
+}
+
+.file-template-editor-field:last-child {
+  margin-bottom: 0;
+}
+
+.file-template-editor-label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: var(--text-normal);
+}
+
+.file-template-editor-hint {
+  font-size: 0.85em;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.file-template-editor-preview {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: var(--background-primary);
+  border-radius: 4px;
+  font-family: var(--font-monospace);
+  font-size: 0.9em;
+  color: var(--text-muted);
+}
+
+.file-template-editor-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+/* Add template button */
+.file-template-add-button {
+  margin-top: 16px;
+}
+
+/* Empty list state */
+.file-template-empty-list {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--background-secondary);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.file-template-empty-list p {
+  margin: 8px 0;
+}
+
+/* List item preview */
+.file-template-list-item-preview {
+  font-size: 0.8em;
+  color: var(--text-faint);
+  font-family: var(--font-monospace);
+  margin-top: 4px;
+}
+
+.file-template-list-item-folder {
+  color: var(--text-muted);
+}
+
+.file-template-list-item-file-template {
+  color: var(--text-faint);
+}
+
+/* Editor form inputs */
+.file-template-editor-input {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  color: var(--text-normal);
+  font-size: 1em;
+}
+
+.file-template-editor-input:focus {
+  border-color: var(--interactive-accent);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+}
+
+.file-template-editor-input::placeholder {
+  color: var(--text-faint);
+}
+
+.file-template-editor-select {
+  width: 100%;
+  padding: 8px 12px;
+  padding-right: 32px;
+  background: var(--background-primary);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  color: var(--text-normal);
+  font-size: 1em;
+  cursor: pointer;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.file-template-editor-select:focus {
+  border-color: var(--interactive-accent);
+  outline: none;
+}
+
+/* Validation error */
+.file-template-editor-error {
+  color: var(--text-error);
+  font-size: 0.85em;
+  margin-top: 4px;
+}
+
+/* React container */
+.file-template-react-container {
+  margin-top: 8px;
+}
+
+/* Variable hints */
+.file-template-variable-hints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.file-template-variable-hint {
+  padding: 2px 8px;
+  background: var(--background-modifier-hover);
+  border-radius: 4px;
+  font-family: var(--font-monospace);
+  font-size: 0.8em;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.file-template-variable-hint:hover {
+  background: var(--background-modifier-active-hover);
+  color: var(--text-normal);
+}
+
+/* ========================================
+   Searchable Select
+   ======================================== */
+
+.file-template-searchable-select {
+  position: relative;
+  width: 100%;
+}
+
+.file-template-searchable-select-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.file-template-searchable-select-input {
+  width: 100%;
+  padding: 8px 32px 8px 12px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  color: var(--text-normal);
+  font-size: 1em;
+}
+
+.file-template-searchable-select-input:focus {
+  border-color: var(--interactive-accent);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+}
+
+.file-template-searchable-select-input::placeholder {
+  color: var(--text-faint);
+}
+
+.file-template-searchable-select-toggle {
+  position: absolute;
+  right: 4px;
+  padding: 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-template-searchable-select-toggle:hover {
+  color: var(--text-normal);
+}
+
+.file-template-searchable-select-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 4px 0 0 0;
+  padding: 4px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  box-shadow: var(--shadow-s);
+  z-index: 100;
+  list-style: none;
+}
+
+.file-template-searchable-select-option {
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.95em;
+  color: var(--text-normal);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-template-searchable-select-option:hover,
+.file-template-searchable-select-option.is-highlighted {
+  background: var(--background-modifier-hover);
+}
+
+.file-template-searchable-select-option.is-selected {
+  color: var(--text-accent);
+  font-weight: 500;
+}
+
+.file-template-searchable-select-empty {
+  padding: 12px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9em;
+}
+
+/* ========================================
+   Mobile Optimizations
+   ======================================== */
+
+/* Larger touch targets on mobile */
+.is-mobile .file-template-suggestion {
+  padding: 12px 16px;
+  min-height: 44px;
+}
+
+.is-mobile .file-template-list-item {
+  padding: 16px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.is-mobile .file-template-list-item-actions {
+  margin-left: 0;
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.is-mobile .file-template-list-item-actions button {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.is-mobile .file-template-variable-hint {
+  padding: 8px 14px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+/* Larger form inputs on mobile */
+.is-mobile .file-template-editor-input,
+.is-mobile .file-template-editor-select {
+  padding: 12px 14px;
+  font-size: 16px; /* Prevents iOS zoom on focus */
+  min-height: 44px;
+}
+
+/* More spacing in editor on mobile */
+.is-mobile .file-template-editor {
+  padding: 20px;
+}
+
+.is-mobile .file-template-editor-field {
+  margin-bottom: 20px;
+}
+
+/* Larger buttons on mobile */
+.is-mobile .file-template-editor-actions button {
+  padding: 12px 20px;
+  min-height: 44px;
+}
+
+.is-mobile .file-template-add-button {
+  width: 100%;
+  padding: 14px;
+  min-height: 48px;
+}
+
+/* Better empty state on mobile */
+.is-mobile .file-template-empty-list,
+.is-mobile .file-template-empty-state {
+  padding: 32px 20px;
+}
+
+/* Ensure modal suggestion items are easily tappable */
+.is-mobile .file-template-suggestion-content {
+  gap: 6px;
+}
+
+.is-mobile .file-template-suggestion-meta {
+  font-size: 0.9em;
+}
+
+.is-mobile .file-template-suggestion-pattern {
+  font-size: 0.85em;
+}
+
+/* Searchable select mobile styles */
+.is-mobile .file-template-searchable-select-input {
+  padding: 12px 40px 12px 14px;
+  font-size: 16px; /* Prevents iOS zoom on focus */
+  min-height: 44px;
+}
+
+.is-mobile .file-template-searchable-select-toggle {
+  padding: 12px;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.is-mobile .file-template-searchable-select-option {
+  padding: 12px 14px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.is-mobile .file-template-searchable-select-dropdown {
+  max-height: 300px;
 }
