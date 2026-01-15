@@ -170,9 +170,25 @@ describe("templateParser", () => {
   });
 
   describe("sanitizeFilename", () => {
-    it("should replace invalid characters with dashes", () => {
-      const result = sanitizeFilename('file<>:"/\\|?*name');
-      expect(result).toBe("file---------name");
+    it("should replace colon with two dot punctuation", () => {
+      const result = sanitizeFilename("file:name:test");
+      expect(result).toBe("file⦂name⦂test");
+    });
+
+    it("should replace pipe with divides symbol", () => {
+      const result = sanitizeFilename("file|name|test");
+      expect(result).toBe("file∣name∣test");
+    });
+
+    it("should remove * \" \\ / < > ? characters", () => {
+      const result = sanitizeFilename('file*"\\/<>?name');
+      expect(result).toBe("filename");
+    });
+
+    it("should handle mixed invalid characters", () => {
+      const result = sanitizeFilename('test:file|name*removed"gone');
+      // : → ⦂, | → ∣, * and " are removed
+      expect(result).toBe("test⦂file∣nameremovedgone");
     });
 
     it("should remove leading dots", () => {
@@ -204,18 +220,30 @@ describe("templateParser", () => {
       const result = sanitizeFilename("");
       expect(result).toBe("");
     });
+
+    it("should remove control characters", () => {
+      const result = sanitizeFilename("file\x00\x1fname");
+      expect(result).toBe("filename");
+    });
   });
 
   describe("parseTemplateToFilename", () => {
     it("should parse and sanitize in one step", () => {
       const result = parseTemplateToFilename("{{date}}/notes", fixedDate);
-      expect(result).toBe("2024-03-15-notes");
+      // Forward slash is removed
+      expect(result).toBe("2024-03-15notes");
     });
 
-    it("should handle complex patterns with sanitization needed", () => {
+    it("should handle colon with replacement character", () => {
       const result = parseTemplateToFilename("  {{date}}:{{time}}  ", fixedDate);
-      // Colon replaced, whitespace trimmed
-      expect(result).toMatch(/^2024-03-15-\d{2}-\d{2}-\d{2}$/);
+      // Colon replaced with ⦂, whitespace trimmed
+      expect(result).toMatch(/^2024-03-15⦂\d{2}-\d{2}-\d{2}$/);
+    });
+
+    it("should handle pipe with replacement character", () => {
+      const result = parseTemplateToFilename("{{date}}|notes", fixedDate);
+      // Pipe replaced with ∣
+      expect(result).toBe("2024-03-15∣notes");
     });
   });
 

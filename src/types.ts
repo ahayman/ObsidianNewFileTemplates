@@ -16,6 +16,8 @@ export interface TitleTemplate {
   folder: string;
   /** Optional path to a file template to apply */
   fileTemplate?: string;
+  /** Whether to process the file template with Templater plugin */
+  useTemplater?: boolean;
 }
 
 /**

@@ -70,7 +70,8 @@ describe("FileService", () => {
 
       await fileService.createFile("Notes", "test:note/invalid", "content");
 
-      expect(app.vault.create).toHaveBeenCalledWith("Notes/test-note-invalid.md", "content");
+      // : replaced with ⦂, / removed
+      expect(app.vault.create).toHaveBeenCalledWith("Notes/test⦂noteinvalid.md", "content");
     });
 
     it("should resolve filename conflicts by appending a number", async () => {

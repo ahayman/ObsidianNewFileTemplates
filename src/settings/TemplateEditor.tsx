@@ -6,10 +6,14 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { TitleTemplate } from "../types";
-import { parseTitleTemplate, getTemplatesSettings, SUPPORTED_VARIABLES } from "../utils";
+import { parseTitleTemplateToFilename, getTemplatesSettings, SUPPORTED_VARIABLES } from "../utils";
 import { useApp } from "./AppContext";
 import { TFolder, TFile } from "obsidian";
 import { SearchableSelect, SelectOption } from "./SearchableSelect";
+import {
+  getTemplaterStatus,
+  TemplaterStatus,
+} from "../services/TemplaterService";
 
 interface TemplateEditorProps {
   /** Template to edit, or undefined for creating new */
@@ -37,6 +41,14 @@ export function TemplateEditor({ template, templateFolder, onSave, onCancel }: T
   const [titlePattern, setTitlePattern] = useState(template?.titlePattern ?? "{{date}}-");
   const [folder, setFolder] = useState(template?.folder ?? "current");
   const [fileTemplate, setFileTemplate] = useState(template?.fileTemplate ?? "");
+  const [useTemplater, setUseTemplater] = useState(template?.useTemplater ?? true);
+
+  // Templater status state
+  const [templaterStatus, setTemplaterStatus] = useState<TemplaterStatus>({
+    hasTemplaterSyntax: false,
+    templaterAvailable: false,
+    templaterAutoProcesses: false,
+  });
 
   // Validation state
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -73,6 +85,25 @@ export function TemplateEditor({ template, templateFolder, onSave, onCancel }: T
     setTemplateFiles(["", ...mdFiles]);
   }, [app, templateFolder]);
 
+  // Check Templater status when file template changes
+  useEffect(() => {
+    const checkTemplater = async () => {
+      const status = await getTemplaterStatus(app, fileTemplate || undefined);
+      setTemplaterStatus(status);
+
+      // If file template has Templater syntax and Templater is available but doesn't auto-process,
+      // default useTemplater to true for new templates or when file template changes
+      if (status.hasTemplaterSyntax && status.templaterAvailable && !status.templaterAutoProcesses) {
+        // Only set default if this is not initial load of an existing template
+        if (!template?.fileTemplate || template.fileTemplate !== fileTemplate) {
+          setUseTemplater(true);
+        }
+      }
+    };
+
+    checkTemplater();
+  }, [app, fileTemplate, template?.fileTemplate]);
+
   // Validate form
   const validate = useCallback((): boolean => {
     const newErrors: Record<string, string> = {};
@@ -99,25 +130,37 @@ export function TemplateEditor({ template, templateFolder, onSave, onCancel }: T
       return;
     }
 
+    // Determine if we should save useTemplater setting
+    // Only save it if:
+    // 1. File template is set AND
+    // 2. File template has Templater syntax AND
+    // 3. Templater is available AND doesn't auto-process
+    const shouldSaveUseTemplater =
+      fileTemplate.trim() &&
+      templaterStatus.hasTemplaterSyntax &&
+      templaterStatus.templaterAvailable &&
+      !templaterStatus.templaterAutoProcesses;
+
     const savedTemplate: TitleTemplate = {
       id: template?.id ?? generateId(),
       name: name.trim(),
       titlePattern: titlePattern.trim(),
       folder: folder.trim() || "current",
       fileTemplate: fileTemplate.trim() || undefined,
+      useTemplater: shouldSaveUseTemplater ? useTemplater : undefined,
     };
 
     onSave(savedTemplate);
-  }, [template, name, titlePattern, folder, fileTemplate, validate, onSave]);
+  }, [template, name, titlePattern, folder, fileTemplate, useTemplater, templaterStatus, validate, onSave]);
 
   // Insert variable at cursor (or append)
   const insertVariable = useCallback((variable: string) => {
     setTitlePattern((prev) => `${prev}{{${variable}}}`);
   }, []);
 
-  // Preview the generated title using user's Templates settings
+  // Preview the generated title using user's Templates settings (with sanitization)
   const templatesSettings = getTemplatesSettings(app);
-  const titlePreview = parseTitleTemplate(titlePattern || "{{date}}", templatesSettings);
+  const titlePreview = parseTitleTemplateToFilename(titlePattern || "{{date}}", templatesSettings);
 
   // Convert folders to SelectOption format
   const folderOptions: SelectOption[] = useMemo(() => {
@@ -248,6 +291,48 @@ export function TemplateEditor({ template, templateFolder, onSave, onCancel }: T
           Content from this file will be inserted into the new note.
         </div>
       </div>
+
+      {/* Templater Integration Section */}
+      {fileTemplate && templaterStatus.hasTemplaterSyntax && (
+        <div className="file-template-editor-field">
+          {/* Scenario A: Templater available, doesn't auto-process - show toggle */}
+          {templaterStatus.templaterAvailable && !templaterStatus.templaterAutoProcesses && (
+            <div className="file-template-templater-toggle">
+              <label className="file-template-toggle-container">
+                <input
+                  type="checkbox"
+                  checked={useTemplater}
+                  onChange={(e) => setUseTemplater(e.target.checked)}
+                />
+                <span className="file-template-toggle-label">
+                  Process template with Templater
+                </span>
+              </label>
+              <div className="file-template-editor-hint">
+                When enabled, Templater syntax in this template will be processed when creating new files.
+              </div>
+            </div>
+          )}
+
+          {/* Scenario B: Templater available, auto-processes - show info message */}
+          {templaterStatus.templaterAvailable && templaterStatus.templaterAutoProcesses && (
+            <div className="file-template-templater-info">
+              <span className="file-template-templater-info-icon">ℹ️</span>
+              <span>Automatically processed by Templater</span>
+            </div>
+          )}
+
+          {/* Scenario C: Templater not available - show warning */}
+          {!templaterStatus.templaterAvailable && (
+            <div className="file-template-templater-warning">
+              <span className="file-template-templater-warning-icon">⚠️</span>
+              <span>
+                This template contains Templater syntax, but the Templater plugin is not installed.
+              </span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Actions */}
       <div className="file-template-editor-actions">

@@ -4,6 +4,11 @@ import { FileService } from "./services";
 import { openTemplateSelectModal } from "./modals";
 import { FileTemplateSettingsTab } from "./settings";
 import { parseTitleTemplateToFilename, getTemplatesSettings } from "./utils";
+import {
+  isTemplaterEnabled,
+  doesTemplaterAutoProcess,
+  processTemplaterInFile,
+} from "./services/TemplaterService";
 
 export default class FileTemplatePlugin extends Plugin {
   settings: PluginSettings = DEFAULT_SETTINGS;
@@ -172,6 +177,24 @@ export default class FileTemplatePlugin extends Plugin {
 
       // Create the file
       const result = await this.fileService.createFile(folderPath, filename, content);
+
+      // Process with Templater if enabled and applicable
+      // Only process if:
+      // 1. Template has useTemplater enabled
+      // 2. Templater is installed
+      // 3. Templater does NOT auto-process on file creation
+      if (
+        template.useTemplater &&
+        isTemplaterEnabled(this.app) &&
+        !doesTemplaterAutoProcess(this.app)
+      ) {
+        try {
+          await processTemplaterInFile(this.app, result.file);
+        } catch (error) {
+          console.error("Templater processing failed:", error);
+          new Notice("Warning: Templater processing failed. File created but template syntax may not be processed.");
+        }
+      }
 
       // Notify user
       if (result.conflictResolved) {

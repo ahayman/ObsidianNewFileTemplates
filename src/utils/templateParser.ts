@@ -148,21 +148,25 @@ export function previewTemplate(pattern: string, date: Date = new Date()): strin
 }
 
 /**
- * Sanitizes a filename by replacing invalid characters
+ * Sanitizes a filename by replacing or removing invalid characters
  * This is applied after template parsing to ensure valid filenames
+ *
+ * Character handling:
+ * - : replaced with ⦂ (two dot punctuation U+2982)
+ * - | replaced with ∣ (divides U+2223)
+ * - * " \ / < > ? and control characters are removed
  *
  * @param filename - The filename to sanitize
  * @returns Sanitized filename safe for file systems
  */
 export function sanitizeFilename(filename: string): string {
-  // Replace characters that are invalid in filenames across platforms
-  // Windows: < > : " / \ | ? *
-  // macOS/Linux: / and null
   return filename
-    .replace(/[<>:"/\\|?*\x00-\x1f]/g, "-")
-    .replace(/^\.+/, "") // Remove leading dots
-    .replace(/\.+$/, "") // Remove trailing dots
-    .replace(/\s+/g, " ") // Normalize whitespace
+    .replace(/:/g, "⦂")           // Replace colon with two dot punctuation
+    .replace(/\|/g, "∣")          // Replace pipe with divides symbol
+    .replace(/[*"\\/<>?\x00-\x1f]/g, "") // Remove other invalid characters
+    .replace(/^\.+/, "")          // Remove leading dots
+    .replace(/\.+$/, "")          // Remove trailing dots
+    .replace(/\s+/g, " ")         // Normalize whitespace
     .trim();
 }
 

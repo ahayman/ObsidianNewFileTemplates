@@ -5,13 +5,18 @@ Create new notes with templated titles and optional file content templates. Quic
 ## Features
 
 - **Title Templates**: Define patterns for generating filenames with date/time variables
-- **File Templates**: Optionally apply content templates to new files
+- **File Templates**: Optionally apply content templates to new files (with variable substitution)
+- **Templater Integration**: Automatically process Templater syntax in your file templates
+- **Obsidian Integration**: Uses your configured date/time formats from Obsidian's core Templates plugin
+- **Template Reordering**: Drag and drop or use arrow buttons to arrange templates in your preferred order
 - **Multiple Access Methods**:
   - Command palette: "Create New Templated File"
   - Per-template commands: "Create a new {Template Name} File"
   - Right-click folder context menu
   - Ribbon icon (sidebar)
 - **Flexible Folder Targeting**: Set a default folder or use the current folder
+- **Searchable Selection**: Search through folders and template files in settings
+- **Smart Filename Sanitization**: Automatically handles invalid filename characters
 - **Mobile Support**: Fully optimized for iOS and Android
 
 ## Installation
@@ -39,28 +44,94 @@ Create new notes with templated titles and optional file content templates. Quic
    - **Target Folder**: Where to create files (or "Current Folder")
    - **File Template**: Optional content template file
 
+### Reordering Templates
+
+Templates appear in the order you arrange them, both in settings and when selecting a template:
+
+- **Drag and Drop**: Use the grip handle on the left to drag templates to a new position
+- **Arrow Buttons**: Use the up/down arrows to move templates one position at a time
+- On mobile, the arrow buttons are always visible for easy reordering
+
 ### Title Pattern Variables
 
-| Variable | Output | Example |
-|----------|--------|---------|
-| `{{date}}` | YYYY-MM-DD | 2024-03-15 |
-| `{{time}}` | HH-mm-ss | 14-30-45 |
-| `{{datetime}}` | YYYY-MM-DD_HH-mm-ss | 2024-03-15_14-30-45 |
+The plugin integrates with Obsidian's core Templates plugin. If you have date/time formats configured there, they will be used automatically.
+
+| Variable | Description | Default Format |
+|----------|-------------|----------------|
+| `{{date}}` | Current date | YYYY-MM-DD |
+| `{{date:FORMAT}}` | Date with custom format | Any moment.js format |
+| `{{time}}` | Current time (file-safe) | HH-mm-ss |
+| `{{time:FORMAT}}` | Time with custom format | Any moment.js format |
+| `{{datetime}}` | Combined date and time | YYYY-MM-DD_HH-mm-ss |
 | `{{timestamp}}` | Unix milliseconds | 1710513045000 |
-| `{{year}}` | YYYY | 2024 |
-| `{{month}}` | MM | 03 |
-| `{{day}}` | DD | 15 |
+| `{{year}}` | Current year | YYYY |
+| `{{month}}` | Current month (zero-padded) | MM |
+| `{{day}}` | Current day (zero-padded) | DD |
+
+**Custom Format Examples:**
+- `{{date:MMMM D, YYYY}}` → "March 15, 2024"
+- `{{date:dddd}}` → "Friday"
+- `{{time:h-mm A}}` → "2-30 PM"
 
 ### File Template Variables
 
-Content templates support these additional variables:
+When you specify a file template, its content is processed with variable substitution (matching Obsidian's Templates plugin behavior):
 
 | Variable | Description |
 |----------|-------------|
 | `{{title}}` | The generated filename (without extension) |
-| `{{date}}` | Current date |
-| `{{time}}` | Current time |
-| All title variables | Same as title pattern variables |
+| `{{date}}` | Current date in your configured format |
+| `{{date:FORMAT}}` | Date with custom moment.js format |
+| `{{time}}` | Current time in your configured format |
+| `{{time:FORMAT}}` | Time with custom moment.js format |
+
+### Templater Integration
+
+If you use the [Templater](https://github.com/SilentVoid13/Templater) plugin, this plugin can automatically process Templater syntax (`<% ... %>`) in your file templates when creating new notes.
+
+**How it works:**
+
+When you select a file template in the template editor, the plugin checks if it contains Templater syntax. Based on what it finds, you'll see one of:
+
+| Scenario | What You'll See |
+|----------|-----------------|
+| Templater syntax detected, Templater installed | Toggle to enable/disable Templater processing |
+| Templater syntax detected, Templater auto-processes on file creation | Info message: "Automatically processed by Templater" |
+| Templater syntax detected, Templater NOT installed | Warning that Templater plugin is not installed |
+| No Templater syntax | Nothing (no Templater options shown) |
+
+**Setting Templater's auto-process option:**
+
+Templater has a setting called "Trigger Templater on new file creation". If this is enabled, Templater will automatically process any new file, so this plugin won't need to trigger processing manually. If it's disabled, you can use the toggle in the template editor to control whether this plugin should process Templater syntax.
+
+**Example file template with Templater:**
+
+```markdown
+---
+created: <% tp.date.now("YYYY-MM-DD HH:mm") %>
+tags: []
+---
+
+# {{title}}
+
+<% tp.file.cursor() %>
+```
+
+When you create a new file with this template:
+1. `{{title}}` is replaced with the generated filename (by this plugin)
+2. `<% tp.date.now() %>` and `<% tp.file.cursor() %>` are processed by Templater
+
+### Filename Sanitization
+
+The plugin automatically handles characters that aren't allowed in filenames:
+
+| Character | Replacement |
+|-----------|-------------|
+| `:` | `⦂` (two dot punctuation) |
+| `\|` | `∣` (divides symbol) |
+| `* " \ / < > ?` | Removed |
+
+This allows you to use time formats like `{{time:HH:mm}}` in your patterns - the colons will be automatically converted to safe characters.
 
 ### Creating Files
 
@@ -90,11 +161,17 @@ Content templates support these additional variables:
 - Folder: `Meetings`
 - Result: `2024-03-15_14-30-45-meeting.md`
 
-**Quick Thought:**
-- Name: `Quick Thought`
-- Pattern: `{{timestamp}}`
+**Timestamped Note with Custom Format:**
+- Name: `Quick Note`
+- Pattern: `{{date:YYYYMMDD}}-{{time:HHmmss}}`
 - Folder: `Current Folder`
-- Result: `1710513045000.md` (in current folder)
+- Result: `20240315-143045.md`
+
+**Weekly Review:**
+- Name: `Weekly Review`
+- Pattern: `{{date:YYYY}}-W{{date:ww}}-review`
+- Folder: `Reviews`
+- Result: `2024-W11-review.md`
 
 ## Development
 
@@ -123,7 +200,9 @@ src/
 ├── main.ts           # Plugin entry point
 ├── types.ts          # TypeScript interfaces
 ├── utils/            # Template parsing utilities
-├── services/         # File operations service
+├── services/
+│   ├── FileService.ts      # File operations
+│   └── TemplaterService.ts # Templater plugin integration
 ├── modals/           # Template selection modal
 └── settings/         # React-based settings UI
 ```
