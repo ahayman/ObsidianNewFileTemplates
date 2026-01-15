@@ -67,11 +67,29 @@ The plugin integrates with Obsidian's core Templates plugin. If you have date/ti
 | `{{year}}` | Current year | YYYY |
 | `{{month}}` | Current month (zero-padded) | MM |
 | `{{day}}` | Current day (zero-padded) | DD |
+| `{{counter}}` | Auto-incrementing number | Scans folder for max value |
 
 **Custom Format Examples:**
 - `{{date:MMMM D, YYYY}}` → "March 15, 2024"
 - `{{date:dddd}}` → "Friday"
 - `{{time:h-mm A}}` → "2-30 PM"
+
+**Auto-Incrementing Counter:**
+
+The `{{counter}}` variable automatically increments based on existing files in the target folder. When you create a new file:
+
+1. The plugin scans the target folder for files matching your template pattern
+2. Extracts the counter values from matching filenames
+3. Uses the next value (max + 1)
+
+When you add `{{counter}}` to your pattern, a "Counter Starts At" field appears in the template editor. This sets the initial value when no matching files exist (default: 1).
+
+**Counter Examples:**
+- Pattern: `Chapter {{counter}}` with existing files `Chapter 1.md`, `Chapter 2.md` → Creates `Chapter 3.md`
+- Pattern: `{{counter}} - {{date}} Meeting` → Creates `1 - 2024-03-15 Meeting.md`, `2 - 2024-03-15 Meeting.md`, etc.
+- Pattern: `Note {{counter}}` with "Starts At: 100" and no existing files → Creates `Note 100.md`
+
+Note: `{{counter}}` can only be used once per template pattern.
 
 ### File Template Variables
 
@@ -173,6 +191,13 @@ This allows you to use time formats like `{{time:HH:mm}}` in your patterns - the
 - Folder: `Reviews`
 - Result: `2024-W11-review.md`
 
+**Book Chapter:**
+- Name: `Book Chapter`
+- Pattern: `Chapter {{counter}} - {{date}}`
+- Folder: `Book`
+- Counter Starts At: `1`
+- Result: `Chapter 1 - 2024-03-15.md`, `Chapter 2 - 2024-03-15.md`, etc.
+
 ## Development
 
 ### Prerequisites
@@ -202,7 +227,8 @@ src/
 ├── utils/            # Template parsing utilities
 ├── services/
 │   ├── FileService.ts      # File operations
-│   └── TemplaterService.ts # Templater plugin integration
+│   ├── TemplaterService.ts # Templater plugin integration
+│   └── CounterService.ts   # Auto-increment counter logic
 ├── modals/           # Template selection modal
 └── settings/         # React-based settings UI
 ```

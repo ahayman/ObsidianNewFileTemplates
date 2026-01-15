@@ -18,6 +18,8 @@ export interface TitleTemplate {
   fileTemplate?: string;
   /** Whether to process the file template with Templater plugin */
   useTemplater?: boolean;
+  /** Starting value for {{counter}} variable when no matching files exist (default: 1) */
+  counterStartsAt?: number;
 }
 
 /**
@@ -49,4 +51,5 @@ export type TemplateVariable =
   | "timestamp" // Unix timestamp
   | "year"      // Current year
   | "month"     // Current month
-  | "day";      // Current day
+  | "day"       // Current day
+  | "counter";  // Auto-incrementing integer

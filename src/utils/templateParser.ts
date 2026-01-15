@@ -10,6 +10,7 @@
  * - {{year}}      - Current year (YYYY)
  * - {{month}}     - Current month (MM, zero-padded)
  * - {{day}}       - Current day (DD, zero-padded)
+ * - {{counter}}   - Auto-incrementing integer (computed from existing files)
  */
 
 /**
@@ -55,6 +56,7 @@ export const SUPPORTED_VARIABLES = [
   "year",
   "month",
   "day",
+  "counter",
 ] as const;
 
 export type TemplateVariable = (typeof SUPPORTED_VARIABLES)[number];
@@ -65,21 +67,99 @@ export type TemplateVariable = (typeof SUPPORTED_VARIABLES)[number];
 const VARIABLE_PATTERN = /\{\{(\w+)\}\}/g;
 
 /**
+ * Checks if a template pattern contains the {{counter}} variable
+ *
+ * @param pattern - The template pattern to check
+ * @returns true if the pattern contains {{counter}}
+ */
+export function hasCounterVariable(pattern: string): boolean {
+  return /\{\{counter\}\}/i.test(pattern);
+}
+
+/**
+ * Counts the number of occurrences of a specific variable in a pattern
+ *
+ * @param pattern - The template pattern to search
+ * @param variable - The variable name to count (without braces)
+ * @returns The number of times the variable appears
+ */
+export function countVariableOccurrences(pattern: string, variable: string): number {
+  const regex = new RegExp(`\\{\\{${variable}\\}\\}`, "gi");
+  const matches = pattern.match(regex);
+  return matches ? matches.length : 0;
+}
+
+/**
+ * Validation result for template patterns
+ */
+export interface TemplateValidationResult {
+  valid: boolean;
+  error?: string;
+  unrecognizedVariables?: string[];
+}
+
+/**
+ * Validates a template pattern including counter-specific rules
+ *
+ * @param pattern - The template pattern to validate
+ * @returns Validation result with error message if invalid
+ */
+export function validateTemplatePattern(pattern: string): TemplateValidationResult {
+  // Check for unrecognized variables
+  const unrecognized = validateTemplate(pattern);
+  if (unrecognized.length > 0) {
+    return {
+      valid: false,
+      error: `Unrecognized variables: ${unrecognized.join(", ")}`,
+      unrecognizedVariables: unrecognized,
+    };
+  }
+
+  // Check that {{counter}} appears at most once
+  const counterCount = countVariableOccurrences(pattern, "counter");
+  if (counterCount > 1) {
+    return {
+      valid: false,
+      error: "Template can only contain one {{counter}} variable",
+    };
+  }
+
+  return { valid: true };
+}
+
+/**
  * Parses a template pattern and substitutes all variables with their values
  *
  * @param pattern - The template pattern containing {{variable}} placeholders
  * @param date - Optional date to use for variable values (defaults to current date)
+ * @param counterValue - Optional counter value to substitute for {{counter}}
  * @returns The parsed string with all variables substituted
  *
  * @example
  * parseTemplate("{{date}}-notes") // "2024-01-15-notes"
  * parseTemplate("{{year}}/{{month}}/{{day}}") // "2024/01/15"
+ * parseTemplate("Note {{counter}}", new Date(), 5) // "Note 5"
  */
-export function parseTemplate(pattern: string, date: Date = new Date()): string {
+export function parseTemplate(
+  pattern: string,
+  date: Date = new Date(),
+  counterValue?: number
+): string {
   const variables = getTemplateVariables(date);
 
   return pattern.replace(VARIABLE_PATTERN, (match, variableName: string) => {
-    const value = variables[variableName.toLowerCase()];
+    const lowerName = variableName.toLowerCase();
+
+    // Handle counter variable specially
+    if (lowerName === "counter") {
+      if (counterValue !== undefined) {
+        return String(counterValue);
+      }
+      // Return placeholder for preview if no value provided
+      return "#";
+    }
+
+    const value = variables[lowerName];
     if (value !== undefined) {
       return value;
     }
@@ -141,10 +221,15 @@ export function extractVariables(pattern: string): string[] {
  *
  * @param pattern - The template pattern to preview
  * @param date - Optional date to use (defaults to current date)
+ * @param counterValue - Optional counter value (shows "#" placeholder if not provided)
  * @returns The parsed preview string
  */
-export function previewTemplate(pattern: string, date: Date = new Date()): string {
-  return parseTemplate(pattern, date);
+export function previewTemplate(
+  pattern: string,
+  date: Date = new Date(),
+  counterValue?: number
+): string {
+  return parseTemplate(pattern, date, counterValue);
 }
 
 /**
@@ -175,9 +260,14 @@ export function sanitizeFilename(filename: string): string {
  *
  * @param pattern - The template pattern to parse
  * @param date - Optional date to use (defaults to current date)
+ * @param counterValue - Optional counter value for {{counter}} variable
  * @returns Sanitized filename safe for file systems
  */
-export function parseTemplateToFilename(pattern: string, date: Date = new Date()): string {
-  const parsed = parseTemplate(pattern, date);
+export function parseTemplateToFilename(
+  pattern: string,
+  date: Date = new Date(),
+  counterValue?: number
+): string {
+  const parsed = parseTemplate(pattern, date, counterValue);
   return sanitizeFilename(parsed);
 }

@@ -2,12 +2,16 @@ export {
   parseTemplate,
   parseTemplateToFilename,
   validateTemplate,
+  validateTemplatePattern,
   extractVariables,
   getTemplateVariables,
   sanitizeFilename,
   previewTemplate,
+  hasCounterVariable,
+  countVariableOccurrences,
   SUPPORTED_VARIABLES,
   type TemplateVariable,
+  type TemplateValidationResult,
 } from "./templateParser";
 
 export {

@@ -150,20 +150,32 @@ export const DEFAULT_FILENAME_TIME_FORMAT = "HH-mm-ss";
  * - {{time:FORMAT}} - Current time with custom moment.js format
  * - {{datetime}} - Combined date and time
  * - {{timestamp}} - Unix timestamp in milliseconds
+ * - {{counter}} - Auto-incrementing integer (must provide counterValue)
  *
  * @param pattern - Title pattern with {{variable}} placeholders
  * @param settings - Templates settings (date/time formats)
  * @param targetDate - Optional date to use (defaults to now)
+ * @param counterValue - Optional counter value for {{counter}} variable
  * @returns Parsed title string
  */
 export function parseTitleTemplate(
   pattern: string,
   settings: TemplatesSettings,
-  targetDate?: moment.Moment
+  targetDate?: moment.Moment,
+  counterValue?: number
 ): string {
   const now = targetDate || moment();
 
   let result = pattern;
+
+  // Process {{counter}} - auto-incrementing integer
+  result = result.replace(/\{\{counter\}\}/gi, () => {
+    if (counterValue !== undefined) {
+      return String(counterValue);
+    }
+    // Return placeholder for preview if no value provided
+    return "#";
+  });
 
   // Process {{datetime}} - combined date and time (file-safe)
   result = result.replace(/\{\{datetime\}\}/gi, () => {
@@ -227,13 +239,15 @@ export function sanitizeForFilename(filename: string): string {
  * @param pattern - Title pattern with {{variable}} placeholders
  * @param settings - Templates settings (date/time formats)
  * @param targetDate - Optional date to use (defaults to now)
+ * @param counterValue - Optional counter value for {{counter}} variable
  * @returns Sanitized filename safe for file systems
  */
 export function parseTitleTemplateToFilename(
   pattern: string,
   settings: TemplatesSettings,
-  targetDate?: moment.Moment
+  targetDate?: moment.Moment,
+  counterValue?: number
 ): string {
-  const parsed = parseTitleTemplate(pattern, settings, targetDate);
+  const parsed = parseTitleTemplate(pattern, settings, targetDate, counterValue);
   return sanitizeForFilename(parsed);
 }

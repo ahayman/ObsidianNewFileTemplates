@@ -6,7 +6,13 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { TitleTemplate } from "../types";
-import { parseTitleTemplateToFilename, getTemplatesSettings, SUPPORTED_VARIABLES } from "../utils";
+import {
+  parseTitleTemplateToFilename,
+  getTemplatesSettings,
+  SUPPORTED_VARIABLES,
+  hasCounterVariable,
+  validateTemplatePattern,
+} from "../utils";
 import { useApp } from "./AppContext";
 import { TFolder, TFile } from "obsidian";
 import { SearchableSelect, SelectOption } from "./SearchableSelect";
@@ -42,6 +48,10 @@ export function TemplateEditor({ template, templateFolder, onSave, onCancel }: T
   const [folder, setFolder] = useState(template?.folder ?? "current");
   const [fileTemplate, setFileTemplate] = useState(template?.fileTemplate ?? "");
   const [useTemplater, setUseTemplater] = useState(template?.useTemplater ?? true);
+  const [counterStartsAt, setCounterStartsAt] = useState(template?.counterStartsAt ?? 1);
+
+  // Check if pattern has counter variable
+  const patternHasCounter = useMemo(() => hasCounterVariable(titlePattern), [titlePattern]);
 
   // Templater status state
   const [templaterStatus, setTemplaterStatus] = useState<TemplaterStatus>({
@@ -114,15 +124,26 @@ export function TemplateEditor({ template, templateFolder, onSave, onCancel }: T
 
     if (!titlePattern.trim()) {
       newErrors.titlePattern = "Title pattern is required";
+    } else {
+      // Validate template pattern (checks for unrecognized variables and duplicate counter)
+      const validation = validateTemplatePattern(titlePattern);
+      if (!validation.valid && validation.error) {
+        newErrors.titlePattern = validation.error;
+      }
     }
 
     if (!folder.trim() && folder !== "current") {
       newErrors.folder = "Folder is required";
     }
 
+    // Validate counter starts at value
+    if (patternHasCounter && (counterStartsAt < 0 || !Number.isInteger(counterStartsAt))) {
+      newErrors.counterStartsAt = "Counter must be a non-negative integer";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [name, titlePattern, folder]);
+  }, [name, titlePattern, folder, patternHasCounter, counterStartsAt]);
 
   // Handle save
   const handleSave = useCallback(() => {
@@ -148,10 +169,11 @@ export function TemplateEditor({ template, templateFolder, onSave, onCancel }: T
       folder: folder.trim() || "current",
       fileTemplate: fileTemplate.trim() || undefined,
       useTemplater: shouldSaveUseTemplater ? useTemplater : undefined,
+      counterStartsAt: patternHasCounter ? counterStartsAt : undefined,
     };
 
     onSave(savedTemplate);
-  }, [template, name, titlePattern, folder, fileTemplate, useTemplater, templaterStatus, validate, onSave]);
+  }, [template, name, titlePattern, folder, fileTemplate, useTemplater, templaterStatus, patternHasCounter, counterStartsAt, validate, onSave]);
 
   // Insert variable at cursor (or append)
   const insertVariable = useCallback((variable: string) => {
@@ -254,6 +276,36 @@ export function TemplateEditor({ template, templateFolder, onSave, onCancel }: T
           </div>
         )}
       </div>
+
+      {/* Counter Starts At field - only shown when {{counter}} is used */}
+      {patternHasCounter && (
+        <div className="file-template-editor-field">
+          <label className="file-template-editor-label" htmlFor="template-counter-starts-at">
+            Counter Starts At
+          </label>
+          <input
+            id="template-counter-starts-at"
+            type="number"
+            min="0"
+            step="1"
+            className="file-template-editor-input file-template-editor-input-number"
+            value={counterStartsAt}
+            onChange={(e) => {
+              const value = parseInt(e.target.value, 10);
+              if (!isNaN(value)) {
+                setCounterStartsAt(value);
+              }
+            }}
+          />
+          {errors.counterStartsAt && (
+            <div className="file-template-editor-error">{errors.counterStartsAt}</div>
+          )}
+          <div className="file-template-editor-hint">
+            Initial value when no matching files exist in the target folder.
+            The counter will increment from the highest existing value.
+          </div>
+        </div>
+      )}
 
       {/* Folder field */}
       <div className="file-template-editor-field">

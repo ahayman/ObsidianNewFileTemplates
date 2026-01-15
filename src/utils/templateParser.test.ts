@@ -266,10 +266,11 @@ describe("templateParser", () => {
       expect(SUPPORTED_VARIABLES).toContain("year");
       expect(SUPPORTED_VARIABLES).toContain("month");
       expect(SUPPORTED_VARIABLES).toContain("day");
+      expect(SUPPORTED_VARIABLES).toContain("counter");
     });
 
-    it("should have exactly 7 variables", () => {
-      expect(SUPPORTED_VARIABLES).toHaveLength(7);
+    it("should have exactly 8 variables", () => {
+      expect(SUPPORTED_VARIABLES).toHaveLength(8);
     });
   });
 });

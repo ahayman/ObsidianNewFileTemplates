@@ -1,9 +1,10 @@
 import { Plugin, TFolder, TAbstractFile, Menu, Notice } from "obsidian";
 import { PluginSettings, DEFAULT_SETTINGS, TitleTemplate } from "./types";
-import { FileService } from "./services";
+import { FileService, getNextCounterValue } from "./services";
 import { openTemplateSelectModal } from "./modals";
 import { FileTemplateSettingsTab } from "./settings";
 import { parseTitleTemplateToFilename, getTemplatesSettings } from "./utils";
+import { hasCounterVariable } from "./utils/templateParser";
 import {
   isTemplaterEnabled,
   doesTemplaterAutoProcess,
@@ -157,10 +158,21 @@ export default class FileTemplatePlugin extends Plugin {
         folderPath = template.folder;
       }
 
+      // Get counter value if template uses {{counter}}
+      let counterValue: number | undefined;
+      if (hasCounterVariable(template.titlePattern)) {
+        counterValue = getNextCounterValue(this.app, template, folderPath);
+      }
+
       // Generate the filename from the title pattern
       // Uses user's date/time format settings from Templates plugin
       const templatesSettings = getTemplatesSettings(this.app);
-      const filename = parseTitleTemplateToFilename(template.titlePattern, templatesSettings);
+      const filename = parseTitleTemplateToFilename(
+        template.titlePattern,
+        templatesSettings,
+        undefined, // targetDate - use default (now)
+        counterValue
+      );
 
       // Get file template content if specified
       let content = "";

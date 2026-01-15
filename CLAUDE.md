@@ -4,6 +4,12 @@ This is a Typescript plugin for Obsidian designed to allow users to easily creat
 
 # Instructions
 
+- Use Typescript
+- Obsidian's Plugin docs can be found here: https://docs.obsidian.md/Plugins/Getting+started/Build+a+plugin 
+- Use React for the plugin.
+- Always use Yarn. Never use NPM.
+- Always create a commit message for changes made. NEVER commit. Just create the message.
+
 ## Research
 - If a request is made to research a topic, put the results of the research in the `/Claude/Research` using the template `{current datetime}-{research topic}.md`. The current datetime should be in the format `YYYYMMddHHmmss`
 - Output research results as markdown.
@@ -15,7 +21,3 @@ This is a Typescript plugin for Obsidian designed to allow users to easily creat
 - When creating plans, break them into multiple phases and use ToDo checklists.
 - When implementing a plan, use the phases and mark the ToDos completed as work is completed.  
 
-# Directions
-- Use Typescript
-- Obsidian's Plugin docs can be found here: https://docs.obsidian.md/Plugins/Getting+started/Build+a+plugin 
-- Use React for the plugin.

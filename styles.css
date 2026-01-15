@@ -227,6 +227,10 @@
   color: var(--text-faint);
 }
 
+.file-template-editor-input-number {
+  width: 120px;
+}
+
 .file-template-editor-select {
   width: 100%;
   padding: 8px 12px;
