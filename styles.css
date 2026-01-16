@@ -889,7 +889,7 @@
 
 /* Mobile prompt modal styles */
 .is-mobile .file-template-prompt-modal {
-  padding: 24px 20px;
+  padding: 8px;
 }
 
 .is-mobile .file-template-prompt-modal-input {
@@ -898,9 +898,35 @@
   min-height: 48px;
 }
 
+.is-mobile .file-template-prompt-modal-fields {
+  gap: 10px;
+}
+
+.is-mobile .file-template-prompt-modal-preview {
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  font-size: 0.9em;
+}
+
+.is-mobile .file-template-prompt-modal-actions {
+  margin-top: 12px;
+  padding-top: 10px;
+}
+
 .is-mobile .file-template-prompt-modal-actions button {
-  padding: 14px 20px;
-  min-height: 48px;
+  padding: 12px 16px;
+  min-height: 44px;
+}
+
+.is-mobile .file-template-prompt-modal-label {
+  font-size: 0.9em;
+  margin-bottom: 4px;
+}
+
+.is-mobile .file-template-prompt-modal-field .date-picker,
+.is-mobile .file-template-prompt-modal-field .time-picker,
+.is-mobile .file-template-prompt-modal-field .datetime-picker {
+  margin-top: 2px;
 }
 
 /* ========================================
@@ -917,9 +943,9 @@
 
 /* Header */
 .date-picker-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto auto 1fr auto auto;
   align-items: center;
-  justify-content: space-between;
   padding: 12px 8px;
   background: var(--background-secondary);
   gap: 4px;
@@ -931,12 +957,10 @@
   gap: 8px;
   font-weight: 600;
   color: var(--text-normal);
-  flex: 1;
   justify-content: center;
 }
 
 .date-picker-header-month {
-  min-width: 90px;
   text-align: right;
 }
 
@@ -986,12 +1010,16 @@
 }
 
 .date-picker-day-header {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 0.75em;
   font-weight: 600;
   color: var(--text-muted);
   padding: 8px 0;
   text-transform: uppercase;
+  min-width: 36px;
+  min-height: 24px;
 }
 
 /* Date Grid */
@@ -1005,6 +1033,7 @@
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 2px;
+  place-items: center;
 }
 
 /* Date Cells */
@@ -1083,22 +1112,45 @@
 }
 
 /* Mobile Date Picker */
+.is-mobile .date-picker {
+  padding: 4px;
+}
+
+.is-mobile .date-picker-header {
+  padding: 4px;
+  gap: 2px;
+}
+
 .is-mobile .date-picker-nav-btn {
-  min-width: 44px;
-  min-height: 44px;
-  padding: 10px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 6px;
+}
+
+.is-mobile .date-picker-grid-container {
+  padding: 4px;
+}
+
+.is-mobile .date-picker-day-header {
+  padding: 4px 0;
+  font-size: 0.7em;
+  min-width: 0;
 }
 
 .is-mobile .date-picker-cell {
-  min-height: 44px;
-  min-width: 44px;
-  font-size: 1em;
+  min-height: 36px;
+  min-width: 0;
+  font-size: 0.9em;
+}
+
+.is-mobile .date-picker-footer {
+  padding: 6px;
 }
 
 .is-mobile .date-picker-today-btn {
-  padding: 10px 20px;
-  min-height: 44px;
-  font-size: 1em;
+  padding: 8px 16px;
+  min-height: 36px;
+  font-size: 0.9em;
 }
 
 /* ========================================
@@ -1253,18 +1305,33 @@
 }
 
 /* Mobile Time Picker */
-.is-mobile .time-picker-now-btn {
-  padding: 10px 20px;
-  min-height: 44px;
+.is-mobile .time-picker {
+  padding: 6px;
+}
+
+.is-mobile .time-picker-display {
+  padding: 8px 0 6px;
+  margin: 6px 0;
   font-size: 1em;
 }
 
+.is-mobile .time-picker-footer {
+  padding-top: 6px;
+}
+
+.is-mobile .time-picker-now-btn,
+.is-mobile .time-picker-format-toggle {
+  padding: 6px 12px;
+  min-height: 32px;
+  font-size: 0.85em;
+}
+
 .is-mobile .wheel-column {
-  width: 70px;
+  width: 60px;
 }
 
 .is-mobile .wheel-item {
-  font-size: 1.2em;
+  font-size: 1.1em;
 }
 
 /* ========================================
@@ -1366,16 +1433,39 @@
 }
 
 /* Mobile DateTime Picker */
-.is-mobile .datetime-picker-tab {
-  padding: 14px 16px;
-  min-height: 48px;
-  font-size: 1em;
+.is-mobile .datetime-picker {
+  border-radius: 6px;
 }
 
-.is-mobile .datetime-picker-now-btn {
-  padding: 10px 20px;
-  min-height: 44px;
-  font-size: 1em;
+.is-mobile .datetime-picker-preview {
+  padding: 6px 8px;
+  font-size: 0.9em;
+}
+
+.is-mobile .datetime-picker-tabs {
+  padding: 2px;
+  gap: 2px;
+}
+
+.is-mobile .datetime-picker-tab {
+  padding: 8px 10px;
+  min-height: 36px;
+  font-size: 0.85em;
+}
+
+.is-mobile .datetime-picker-panel {
+  padding: 0;
+}
+
+.is-mobile .datetime-picker-footer {
+  padding: 4px;
+}
+
+.is-mobile .datetime-picker-now-btn,
+.is-mobile .datetime-picker-format-toggle {
+  padding: 6px 12px;
+  min-height: 32px;
+  font-size: 0.85em;
 }
 
 /* ========================================
