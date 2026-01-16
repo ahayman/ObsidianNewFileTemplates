@@ -902,3 +902,505 @@
   padding: 14px 20px;
   min-height: 48px;
 }
+
+/* ========================================
+   Date Picker
+   ======================================== */
+
+.date-picker {
+  background: var(--background-primary);
+  border-radius: 8px;
+  overflow: hidden;
+  user-select: none;
+  touch-action: pan-y;
+}
+
+/* Header */
+.date-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 8px;
+  background: var(--background-secondary);
+  gap: 4px;
+}
+
+.date-picker-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--text-normal);
+  flex: 1;
+  justify-content: center;
+}
+
+.date-picker-header-month {
+  min-width: 90px;
+  text-align: right;
+}
+
+.date-picker-header-year {
+  color: var(--text-muted);
+}
+
+.date-picker-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  min-width: 36px;
+  min-height: 36px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.date-picker-nav-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.date-picker-nav-btn:active {
+  background: var(--background-modifier-active-hover);
+}
+
+.date-picker-nav-btn svg {
+  flex-shrink: 0;
+}
+
+/* Grid Container */
+.date-picker-grid-container {
+  padding: 8px;
+}
+
+/* Day Headers */
+.date-picker-day-headers {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.date-picker-day-header {
+  text-align: center;
+  font-size: 0.75em;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 8px 0;
+  text-transform: uppercase;
+}
+
+/* Date Grid */
+.date-picker-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.date-picker-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+/* Date Cells */
+.date-picker-cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.9em;
+  color: var(--text-normal);
+  background: none;
+  border: 2px solid transparent;
+  padding: 0;
+  min-height: 36px;
+  min-width: 36px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.date-picker-cell:hover {
+  background: var(--background-modifier-hover);
+}
+
+.date-picker-cell:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+}
+
+.date-picker-cell.other-month {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.date-picker-cell.today {
+  border-color: var(--interactive-accent);
+  font-weight: 600;
+}
+
+.date-picker-cell.selected {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: var(--interactive-accent);
+}
+
+.date-picker-cell.selected:hover {
+  background: var(--interactive-accent-hover);
+  border-color: var(--interactive-accent-hover);
+}
+
+.date-picker-cell.selected.today {
+  border-color: var(--interactive-accent);
+}
+
+/* Footer */
+.date-picker-footer {
+  padding: 8px;
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.date-picker-today-btn {
+  padding: 6px 16px;
+  background: var(--background-modifier-hover);
+  border: none;
+  border-radius: 4px;
+  color: var(--text-normal);
+  cursor: pointer;
+  font-size: 0.85em;
+  transition: background-color 0.15s ease;
+}
+
+.date-picker-today-btn:hover {
+  background: var(--background-modifier-active-hover);
+}
+
+/* Mobile Date Picker */
+.is-mobile .date-picker-nav-btn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px;
+}
+
+.is-mobile .date-picker-cell {
+  min-height: 44px;
+  min-width: 44px;
+  font-size: 1em;
+}
+
+.is-mobile .date-picker-today-btn {
+  padding: 10px 20px;
+  min-height: 44px;
+  font-size: 1em;
+}
+
+/* ========================================
+   Time Picker / Wheel Column
+   ======================================== */
+
+.time-picker {
+  background: var(--background-primary);
+  border-radius: 8px;
+  overflow: hidden;
+  padding: 8px;
+}
+
+.time-picker-wheels {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+}
+
+.time-picker-separator {
+  font-size: 1.5em;
+  font-weight: 600;
+  color: var(--text-normal);
+  padding: 0 4px;
+  user-select: none;
+}
+
+.time-picker-display {
+  text-align: center;
+  font-size: 1.1em;
+  font-weight: 500;
+  color: var(--text-normal);
+  padding: 12px 0 8px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  margin: 8px 0;
+}
+
+.time-picker-footer {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.time-picker-now-btn,
+.time-picker-format-toggle {
+  padding: 6px 16px;
+  background: var(--background-modifier-hover);
+  border: none;
+  border-radius: 4px;
+  color: var(--text-normal);
+  cursor: pointer;
+  font-size: 0.85em;
+  transition: background-color 0.15s ease;
+}
+
+.time-picker-now-btn:hover,
+.time-picker-format-toggle:hover {
+  background: var(--background-modifier-active-hover);
+}
+
+.time-picker-format-toggle {
+  font-weight: 500;
+  min-width: 44px;
+}
+
+/* Wheel Column */
+.wheel-column {
+  position: relative;
+  width: 60px;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  outline: none;
+  border-radius: 4px;
+}
+
+.wheel-column:focus {
+  box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+}
+
+.wheel-column:active {
+  cursor: grabbing;
+}
+
+/* Selection highlight bar */
+.wheel-selection-highlight {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  background: var(--background-modifier-hover);
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Fade overlays */
+.wheel-fade-top,
+.wheel-fade-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.wheel-fade-top {
+  top: 0;
+  background: linear-gradient(
+    to bottom,
+    var(--background-primary) 0%,
+    transparent 100%
+  );
+}
+
+.wheel-fade-bottom {
+  bottom: 0;
+  background: linear-gradient(
+    to top,
+    var(--background-primary) 0%,
+    transparent 100%
+  );
+}
+
+/* Items container */
+.wheel-items {
+  position: relative;
+  z-index: 0;
+  transition: transform 0.05s linear;
+}
+
+/* Individual item */
+.wheel-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1em;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: opacity 0.1s ease, transform 0.1s ease;
+}
+
+.wheel-item:hover {
+  color: var(--text-normal);
+}
+
+.wheel-item.selected {
+  color: var(--text-normal);
+  font-weight: 600;
+}
+
+/* Mobile Time Picker */
+.is-mobile .time-picker-now-btn {
+  padding: 10px 20px;
+  min-height: 44px;
+  font-size: 1em;
+}
+
+.is-mobile .wheel-column {
+  width: 70px;
+}
+
+.is-mobile .wheel-item {
+  font-size: 1.2em;
+}
+
+/* ========================================
+   DateTime Picker
+   ======================================== */
+
+.datetime-picker {
+  background: var(--background-primary);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.datetime-picker-preview {
+  padding: 16px;
+  text-align: center;
+  font-size: 1.1em;
+  font-weight: 500;
+  color: var(--text-normal);
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* Tabs */
+.datetime-picker-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.datetime-picker-tab {
+  flex: 1;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-size: 0.95em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.datetime-picker-tab:hover {
+  color: var(--text-normal);
+}
+
+.datetime-picker-tab.active {
+  color: var(--interactive-accent);
+  border-bottom-color: var(--interactive-accent);
+}
+
+/* Panels */
+.datetime-picker-panels {
+  position: relative;
+}
+
+.datetime-picker-panel {
+  display: none;
+}
+
+.datetime-picker-panel.active {
+  display: block;
+}
+
+/* Hide nested footers since we have our own */
+.datetime-picker-panel .date-picker-footer,
+.datetime-picker-panel .time-picker-footer {
+  display: none;
+}
+
+/* Footer */
+.datetime-picker-footer {
+  padding: 8px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.datetime-picker-now-btn,
+.datetime-picker-format-toggle {
+  padding: 6px 16px;
+  background: var(--background-modifier-hover);
+  border: none;
+  border-radius: 4px;
+  color: var(--text-normal);
+  cursor: pointer;
+  font-size: 0.85em;
+  transition: background-color 0.15s ease;
+}
+
+.datetime-picker-now-btn:hover,
+.datetime-picker-format-toggle:hover {
+  background: var(--background-modifier-active-hover);
+}
+
+.datetime-picker-format-toggle {
+  font-weight: 500;
+  min-width: 44px;
+}
+
+/* Mobile DateTime Picker */
+.is-mobile .datetime-picker-tab {
+  padding: 14px 16px;
+  min-height: 48px;
+  font-size: 1em;
+}
+
+.is-mobile .datetime-picker-now-btn {
+  padding: 10px 20px;
+  min-height: 44px;
+  font-size: 1em;
+}
+
+/* ========================================
+   Picker Integration in Prompt Modal
+   ======================================== */
+
+/* Pickers in prompt fields get a border */
+.file-template-prompt-modal-field .date-picker,
+.file-template-prompt-modal-field .time-picker,
+.file-template-prompt-modal-field .datetime-picker {
+  border: 1px solid var(--background-modifier-border);
+  margin-top: 4px;
+}
+
+/* Focus state for pickers */
+.file-template-prompt-modal-field .date-picker:focus-within,
+.file-template-prompt-modal-field .time-picker:focus-within,
+.file-template-prompt-modal-field .datetime-picker:focus-within {
+  border-color: var(--interactive-accent);
+  box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+}
+
+/* Error state for pickers */
+.file-template-prompt-modal-field.has-error .date-picker,
+.file-template-prompt-modal-field.has-error .time-picker,
+.file-template-prompt-modal-field.has-error .datetime-picker {
+  border-color: var(--text-error);
+}

@@ -7,6 +7,7 @@
  */
 
 import { UserPrompt, PromptValues } from "../types";
+import { isValidDate, isValidTime, isValidDateTime } from "./dateTimeUtils";
 
 /**
  * Regular expression to match user prompts: {% Prompt Name %}
@@ -190,21 +191,56 @@ export function validatePromptValue(
     };
   }
 
-  // Check for invalid filename characters
-  if (INVALID_FILENAME_CHARS.test(value)) {
-    return {
-      valid: false,
-      error: "Value contains invalid characters (* \" \\ / < > ? | :)",
-    };
+  // Type-specific validation
+  switch (prompt.valueType) {
+    case "numeric": {
+      const num = Number(value);
+      if (isNaN(num)) {
+        return {
+          valid: false,
+          error: "Value must be a number",
+        };
+      }
+      break;
+    }
+
+    case "date": {
+      if (!isValidDate(value)) {
+        return {
+          valid: false,
+          error: "Must be a valid date (YYYY-MM-DD)",
+        };
+      }
+      break;
+    }
+
+    case "time": {
+      if (!isValidTime(value)) {
+        return {
+          valid: false,
+          error: "Must be a valid time (HH:MM)",
+        };
+      }
+      break;
+    }
+
+    case "datetime": {
+      if (!isValidDateTime(value)) {
+        return {
+          valid: false,
+          error: "Must be a valid date and time",
+        };
+      }
+      break;
+    }
   }
 
-  // Check numeric type
-  if (prompt.valueType === "numeric") {
-    const num = Number(value);
-    if (isNaN(num)) {
+  // Check for invalid filename characters (skip for date/time/datetime as they use safe formats)
+  if (prompt.valueType === "text" || prompt.valueType === "numeric") {
+    if (INVALID_FILENAME_CHARS.test(value)) {
       return {
         valid: false,
-        error: "Value must be a number",
+        error: "Value contains invalid characters (* \" \\ / < > ? | :)",
       };
     }
   }
@@ -324,11 +360,13 @@ export function syncPromptsWithPattern(
   return patternPrompts.map((newPrompt) => {
     const existing = existingByName.get(newPrompt.name.toLowerCase());
     if (existing) {
-      // Preserve existing ID and valueType
+      // Preserve existing ID, valueType, and format config
       return {
         ...newPrompt,
         id: existing.id,
         valueType: existing.valueType,
+        dateConfig: existing.dateConfig,
+        timeConfig: existing.timeConfig,
       };
     }
     return newPrompt;

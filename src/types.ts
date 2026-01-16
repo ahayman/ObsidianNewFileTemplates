@@ -10,9 +10,46 @@ export interface UserPrompt {
   id: string;
   /** Display name shown to user when prompting for value */
   name: string;
-  /** Type of value expected: 'text' for any string, 'numeric' for numbers only */
-  valueType: 'text' | 'numeric';
+  /** Type of value expected */
+  valueType: 'text' | 'numeric' | 'date' | 'time' | 'datetime';
+  /** Optional configuration for date prompts */
+  dateConfig?: {
+    /** Output format for date value inserted into filename */
+    outputFormat?: DateOutputFormat;
+    /** Custom format string when outputFormat is 'custom' */
+    customFormat?: string;
+  };
+  /** Optional configuration for time prompts */
+  timeConfig?: {
+    /** Output format for time value inserted into filename */
+    outputFormat?: TimeOutputFormat;
+    /** Custom format string when outputFormat is 'custom' */
+    customFormat?: string;
+  };
 }
+
+/**
+ * Available date output formats for filenames
+ */
+export type DateOutputFormat =
+  | 'YYYY-MM-DD'      // 2026-01-16 (ISO, default, sorts well)
+  | 'YYYYMMDD'        // 20260116 (compact)
+  | 'MM-DD-YYYY'      // 01-16-2026 (US style)
+  | 'DD-MM-YYYY'      // 16-01-2026 (European style)
+  | 'MMM DD, YYYY'    // Jan 16, 2026 (readable)
+  | 'MMMM DD, YYYY'   // January 16, 2026 (full month)
+  | 'custom';         // User-defined format
+
+/**
+ * Available time output formats for filenames
+ * Note: Colons are automatically converted to ⦂ (two dot punctuation) when saving
+ */
+export type TimeOutputFormat =
+  | 'HH:mm'           // 14:30 (24h)
+  | 'HHmm'            // 1430 (24h compact)
+  | 'h:mm A'          // 2:30 PM (12h, default)
+  | 'hh:mm A'         // 02:30 PM (12h padded)
+  | 'custom';         // User-defined format
 
 /**
  * Values collected from user for prompts at file creation time
