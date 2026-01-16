@@ -11,7 +11,12 @@
  * - {{month}}     - Current month (MM, zero-padded)
  * - {{day}}       - Current day (DD, zero-padded)
  * - {{counter}}   - Auto-incrementing integer (computed from existing files)
+ *
+ * Also supports user prompts with syntax: {% Prompt Name %}
  */
+
+import { UserPrompt, PromptValues } from "../types";
+import { substitutePrompts } from "./promptParser";
 
 /**
  * Pads a number with leading zeros to reach the specified length
@@ -65,6 +70,12 @@ export type TemplateVariable = (typeof SUPPORTED_VARIABLES)[number];
  * Regular expression to match template variables: {{variableName}}
  */
 const VARIABLE_PATTERN = /\{\{(\w+)\}\}/g;
+
+/**
+ * Regular expression to match user prompts: {% Prompt Name %}
+ * These are handled separately and should not be flagged as invalid variables
+ */
+const PROMPT_PATTERN = /\{%\s*.+?\s*%\}/g;
 
 /**
  * Checks if a template pattern contains the {{counter}} variable
@@ -133,21 +144,33 @@ export function validateTemplatePattern(pattern: string): TemplateValidationResu
  * @param pattern - The template pattern containing {{variable}} placeholders
  * @param date - Optional date to use for variable values (defaults to current date)
  * @param counterValue - Optional counter value to substitute for {{counter}}
+ * @param prompts - Optional user prompts configuration
+ * @param promptValues - Optional map of prompt IDs to user-entered values
  * @returns The parsed string with all variables substituted
  *
  * @example
  * parseTemplate("{{date}}-notes") // "2024-01-15-notes"
  * parseTemplate("{{year}}/{{month}}/{{day}}") // "2024/01/15"
  * parseTemplate("Note {{counter}}", new Date(), 5) // "Note 5"
+ * parseTemplate("{% Author %}-{{date}}", new Date(), undefined, prompts, values) // "John-2024-01-15"
  */
 export function parseTemplate(
   pattern: string,
   date: Date = new Date(),
-  counterValue?: number
+  counterValue?: number,
+  prompts?: UserPrompt[],
+  promptValues?: PromptValues
 ): string {
   const variables = getTemplateVariables(date);
 
-  return pattern.replace(VARIABLE_PATTERN, (match, variableName: string) => {
+  // First, substitute user prompts if provided
+  let result = pattern;
+  if (prompts && promptValues) {
+    result = substitutePrompts(result, prompts, promptValues);
+  }
+
+  // Then substitute built-in variables
+  return result.replace(VARIABLE_PATTERN, (match, variableName: string) => {
     const lowerName = variableName.toLowerCase();
 
     // Handle counter variable specially
@@ -170,6 +193,7 @@ export function parseTemplate(
 
 /**
  * Validates a template pattern and returns any unrecognized variables
+ * Note: User prompts ({% Prompt Name %}) are valid and not flagged as unrecognized
  *
  * @param pattern - The template pattern to validate
  * @returns Array of unrecognized variable names (empty if all valid)
@@ -177,6 +201,7 @@ export function parseTemplate(
  * @example
  * validateTemplate("{{date}}-{{invalid}}") // ["invalid"]
  * validateTemplate("{{date}}-{{time}}") // []
+ * validateTemplate("{{date}}-{% Author %}") // [] (prompts are valid)
  */
 export function validateTemplate(pattern: string): string[] {
   const unrecognized: string[] = [];
@@ -222,14 +247,18 @@ export function extractVariables(pattern: string): string[] {
  * @param pattern - The template pattern to preview
  * @param date - Optional date to use (defaults to current date)
  * @param counterValue - Optional counter value (shows "#" placeholder if not provided)
+ * @param prompts - Optional user prompts configuration
+ * @param promptValues - Optional map of prompt IDs to user-entered values
  * @returns The parsed preview string
  */
 export function previewTemplate(
   pattern: string,
   date: Date = new Date(),
-  counterValue?: number
+  counterValue?: number,
+  prompts?: UserPrompt[],
+  promptValues?: PromptValues
 ): string {
-  return parseTemplate(pattern, date, counterValue);
+  return parseTemplate(pattern, date, counterValue, prompts, promptValues);
 }
 
 /**
@@ -261,13 +290,17 @@ export function sanitizeFilename(filename: string): string {
  * @param pattern - The template pattern to parse
  * @param date - Optional date to use (defaults to current date)
  * @param counterValue - Optional counter value for {{counter}} variable
+ * @param prompts - Optional user prompts configuration
+ * @param promptValues - Optional map of prompt IDs to user-entered values
  * @returns Sanitized filename safe for file systems
  */
 export function parseTemplateToFilename(
   pattern: string,
   date: Date = new Date(),
-  counterValue?: number
+  counterValue?: number,
+  prompts?: UserPrompt[],
+  promptValues?: PromptValues
 ): string {
-  const parsed = parseTemplate(pattern, date, counterValue);
+  const parsed = parseTemplate(pattern, date, counterValue, prompts, promptValues);
   return sanitizeFilename(parsed);
 }

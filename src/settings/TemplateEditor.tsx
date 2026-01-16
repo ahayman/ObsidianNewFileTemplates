@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { TitleTemplate } from "../types";
+import { TitleTemplate, UserPrompt } from "../types";
 import {
   parseTitleTemplateToFilename,
   getTemplatesSettings,
@@ -20,6 +20,12 @@ import {
   getTemplaterStatus,
   TemplaterStatus,
 } from "../services/TemplaterService";
+import { PromptEditor, PromptListItem } from "./PromptEditor";
+import {
+  syncPromptsWithPattern,
+  hasPrompts,
+  createPromptSyntax,
+} from "../utils/promptParser";
 
 interface TemplateEditorProps {
   /** Template to edit, or undefined for creating new */
@@ -50,8 +56,27 @@ export function TemplateEditor({ template, templateFolder, onSave, onCancel }: T
   const [useTemplater, setUseTemplater] = useState(template?.useTemplater ?? true);
   const [counterStartsAt, setCounterStartsAt] = useState(template?.counterStartsAt ?? 1);
 
+  // User prompts state
+  const [userPrompts, setUserPrompts] = useState<UserPrompt[]>(template?.userPrompts ?? []);
+  const [showPromptEditor, setShowPromptEditor] = useState(false);
+  const [editingPrompt, setEditingPrompt] = useState<UserPrompt | undefined>();
+
   // Check if pattern has counter variable
   const patternHasCounter = useMemo(() => hasCounterVariable(titlePattern), [titlePattern]);
+
+  // Check if pattern has user prompts
+  const patternHasPrompts = useMemo(() => hasPrompts(titlePattern), [titlePattern]);
+
+  // Sync prompts when title pattern changes
+  useEffect(() => {
+    if (titlePattern) {
+      const synced = syncPromptsWithPattern(titlePattern, userPrompts);
+      // Only update if there's a meaningful change to avoid infinite loop
+      if (JSON.stringify(synced) !== JSON.stringify(userPrompts)) {
+        setUserPrompts(synced);
+      }
+    }
+  }, [titlePattern]);
 
   // Templater status state
   const [templaterStatus, setTemplaterStatus] = useState<TemplaterStatus>({
@@ -170,10 +195,11 @@ export function TemplateEditor({ template, templateFolder, onSave, onCancel }: T
       fileTemplate: fileTemplate.trim() || undefined,
       useTemplater: shouldSaveUseTemplater ? useTemplater : undefined,
       counterStartsAt: patternHasCounter ? counterStartsAt : undefined,
+      userPrompts: patternHasPrompts && userPrompts.length > 0 ? userPrompts : undefined,
     };
 
     onSave(savedTemplate);
-  }, [template, name, titlePattern, folder, fileTemplate, useTemplater, templaterStatus, patternHasCounter, counterStartsAt, validate, onSave]);
+  }, [template, name, titlePattern, folder, fileTemplate, useTemplater, templaterStatus, patternHasCounter, counterStartsAt, patternHasPrompts, userPrompts, validate, onSave]);
 
   // Insert variable at cursor (or append)
   const insertVariable = useCallback((variable: string) => {
@@ -267,6 +293,77 @@ export function TemplateEditor({ template, templateFolder, onSave, onCancel }: T
               {`{{${variable}}}`}
             </button>
           ))}
+        </div>
+
+        {/* User Prompts Section */}
+        <div className="file-template-prompts-section">
+          <div className="file-template-prompts-header">
+            <span className="file-template-prompts-title">User Prompts</span>
+            <button
+              type="button"
+              className="file-template-prompts-add-btn"
+              onClick={() => {
+                setEditingPrompt(undefined);
+                setShowPromptEditor(true);
+              }}
+            >
+              + Add Prompt
+            </button>
+          </div>
+
+          {showPromptEditor && (
+            <PromptEditor
+              prompt={editingPrompt}
+              onSave={(prompt, syntax) => {
+                if (editingPrompt) {
+                  // Update existing prompt
+                  setUserPrompts((prev) =>
+                    prev.map((p) => (p.id === prompt.id ? prompt : p))
+                  );
+                } else {
+                  // Add new prompt and insert syntax
+                  setUserPrompts((prev) => [...prev, prompt]);
+                  setTitlePattern((prev) => prev + syntax);
+                }
+                setShowPromptEditor(false);
+                setEditingPrompt(undefined);
+              }}
+              onCancel={() => {
+                setShowPromptEditor(false);
+                setEditingPrompt(undefined);
+              }}
+            />
+          )}
+
+          {!showPromptEditor && userPrompts.length > 0 && (
+            <div className="file-template-prompts-list">
+              {userPrompts.map((prompt) => (
+                <PromptListItem
+                  key={prompt.id}
+                  prompt={prompt}
+                  onEdit={() => {
+                    setEditingPrompt(prompt);
+                    setShowPromptEditor(true);
+                  }}
+                  onDelete={() => {
+                    setUserPrompts((prev) =>
+                      prev.filter((p) => p.id !== prompt.id)
+                    );
+                  }}
+                  onInsert={() => {
+                    const syntax = createPromptSyntax(prompt.name);
+                    setTitlePattern((prev) => prev + syntax);
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          {!showPromptEditor && userPrompts.length === 0 && (
+            <div className="file-template-prompts-empty">
+              No user prompts configured. Add prompts to request input when creating files.
+            </div>
+          )}
         </div>
 
         {/* Title preview */}

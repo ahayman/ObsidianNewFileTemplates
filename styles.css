@@ -637,3 +637,247 @@
   min-width: 36px;
   min-height: 36px;
 }
+
+/* ========================================
+   User Prompts
+   ======================================== */
+
+/* Prompts section in template editor */
+.file-template-prompts-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.file-template-prompts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.file-template-prompts-title {
+  font-weight: 500;
+  color: var(--text-normal);
+}
+
+.file-template-prompts-add-btn {
+  padding: 4px 12px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85em;
+}
+
+.file-template-prompts-add-btn:hover {
+  background: var(--interactive-accent-hover);
+}
+
+/* Prompt list */
+.file-template-prompts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.file-template-prompt-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--background-primary);
+  border-radius: 4px;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.file-template-prompt-item-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.file-template-prompt-item-name {
+  font-weight: 500;
+  color: var(--text-normal);
+}
+
+.file-template-prompt-item-type {
+  font-size: 0.8em;
+  color: var(--text-muted);
+}
+
+.file-template-prompt-item-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.file-template-prompt-item-btn {
+  padding: 4px 8px;
+  background: var(--background-modifier-hover);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8em;
+  color: var(--text-muted);
+}
+
+.file-template-prompt-item-btn:hover {
+  background: var(--background-modifier-active-hover);
+  color: var(--text-normal);
+}
+
+.file-template-prompt-item-btn-delete:hover {
+  background: rgba(var(--color-red-rgb), 0.2);
+  color: var(--text-error);
+}
+
+/* Prompts empty state */
+.file-template-prompts-empty {
+  padding: 12px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.85em;
+  background: var(--background-primary);
+  border-radius: 4px;
+}
+
+/* Prompt editor form */
+.file-template-prompt-editor {
+  padding: 16px;
+  background: var(--background-primary);
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+  margin-bottom: 12px;
+}
+
+.file-template-prompt-editor-header {
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--text-normal);
+}
+
+.file-template-prompt-syntax-preview {
+  padding: 8px 12px;
+  background: var(--background-secondary);
+  border-radius: 4px;
+  font-family: var(--font-monospace);
+  font-size: 0.9em;
+  color: var(--text-accent);
+}
+
+/* Mobile prompt styles */
+.is-mobile .file-template-prompts-add-btn {
+  padding: 10px 16px;
+  min-height: 44px;
+}
+
+.is-mobile .file-template-prompt-item {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+}
+
+.is-mobile .file-template-prompt-item-actions {
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.is-mobile .file-template-prompt-item-btn {
+  padding: 8px 12px;
+  min-height: 36px;
+}
+
+/* ========================================
+   Prompt Entry Modal
+   ======================================== */
+
+.file-template-prompt-modal {
+  padding: 20px;
+}
+
+.file-template-prompt-modal-preview {
+  padding: 12px 16px;
+  background: var(--background-secondary);
+  border-radius: 6px;
+  font-family: var(--font-monospace);
+  font-size: 1em;
+  margin-bottom: 20px;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
+.file-template-prompt-modal-preview.is-complete {
+  color: var(--color-green);
+  background: rgba(var(--color-green-rgb), 0.1);
+  border: 1px solid var(--color-green);
+}
+
+.file-template-prompt-modal-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.file-template-prompt-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.file-template-prompt-modal-label {
+  font-weight: 500;
+  color: var(--text-normal);
+}
+
+.file-template-prompt-modal-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  color: var(--text-normal);
+  font-size: 1em;
+}
+
+.file-template-prompt-modal-input:focus {
+  border-color: var(--interactive-accent);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+}
+
+.file-template-prompt-modal-input.is-error {
+  border-color: var(--text-error);
+}
+
+.file-template-prompt-modal-error {
+  color: var(--text-error);
+  font-size: 0.85em;
+}
+
+.file-template-prompt-modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+/* Mobile prompt modal styles */
+.is-mobile .file-template-prompt-modal {
+  padding: 24px 20px;
+}
+
+.is-mobile .file-template-prompt-modal-input {
+  padding: 14px 16px;
+  font-size: 16px; /* Prevents iOS zoom on focus */
+  min-height: 48px;
+}
+
+.is-mobile .file-template-prompt-modal-actions button {
+  padding: 14px 20px;
+  min-height: 48px;
+}

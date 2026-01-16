@@ -1,10 +1,12 @@
 import { Plugin, TFolder, TAbstractFile, Menu, Notice } from "obsidian";
-import { PluginSettings, DEFAULT_SETTINGS, TitleTemplate } from "./types";
+import { PluginSettings, DEFAULT_SETTINGS, TitleTemplate, PromptValues } from "./types";
 import { FileService, getNextCounterValue } from "./services";
 import { openTemplateSelectModal } from "./modals";
+import { openPromptEntryModal } from "./modals/PromptEntryModal";
 import { FileTemplateSettingsTab } from "./settings";
 import { parseTitleTemplateToFilename, getTemplatesSettings } from "./utils";
 import { hasCounterVariable } from "./utils/templateParser";
+import { hasPrompts, syncPromptsWithPattern } from "./utils/promptParser";
 import {
   isTemplaterEnabled,
   doesTemplaterAutoProcess,
@@ -145,6 +147,26 @@ export default class FileTemplatePlugin extends Plugin {
     targetFolder?: TFolder
   ): Promise<void> {
     try {
+      // Check if template has user prompts
+      let promptValues: PromptValues | undefined;
+      if (hasPrompts(template.titlePattern)) {
+        // Sync prompts from pattern with stored prompts (to get valueType settings)
+        const prompts = syncPromptsWithPattern(
+          template.titlePattern,
+          template.userPrompts
+        );
+
+        // Show prompt entry modal
+        const values = await openPromptEntryModal(this.app, template, prompts);
+
+        // If user cancelled, abort file creation
+        if (values === null) {
+          return;
+        }
+
+        promptValues = values;
+      }
+
       // Determine the target folder
       let folderPath: string;
       if (targetFolder) {
@@ -164,6 +186,11 @@ export default class FileTemplatePlugin extends Plugin {
         counterValue = getNextCounterValue(this.app, template, folderPath);
       }
 
+      // Sync prompts again if we have prompt values (for the filename generation)
+      const prompts = promptValues
+        ? syncPromptsWithPattern(template.titlePattern, template.userPrompts)
+        : undefined;
+
       // Generate the filename from the title pattern
       // Uses user's date/time format settings from Templates plugin
       const templatesSettings = getTemplatesSettings(this.app);
@@ -171,7 +198,9 @@ export default class FileTemplatePlugin extends Plugin {
         template.titlePattern,
         templatesSettings,
         undefined, // targetDate - use default (now)
-        counterValue
+        counterValue,
+        prompts,
+        promptValues
       );
 
       // Get file template content if specified

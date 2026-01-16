@@ -26,3 +26,20 @@ export {
   DEFAULT_FILENAME_TIME_FORMAT,
   type TemplatesSettings,
 } from "./templatesIntegration";
+
+export {
+  extractPrompts,
+  hasPrompts,
+  countPrompts,
+  substitutePrompts,
+  previewWithPrompts,
+  validatePromptValue,
+  validateAllPromptValues,
+  allPromptsValid,
+  sanitizePromptValue,
+  validatePromptName,
+  createPromptSyntax,
+  syncPromptsWithPattern,
+  generatePromptId,
+  type PromptValidationResult,
+} from "./promptParser";

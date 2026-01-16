@@ -6,6 +6,8 @@
  */
 
 import { App, moment } from "obsidian";
+import { UserPrompt, PromptValues } from "../types";
+import { substitutePrompts } from "./promptParser";
 
 /**
  * Settings from the core Templates plugin
@@ -151,22 +153,32 @@ export const DEFAULT_FILENAME_TIME_FORMAT = "HH-mm-ss";
  * - {{datetime}} - Combined date and time
  * - {{timestamp}} - Unix timestamp in milliseconds
  * - {{counter}} - Auto-incrementing integer (must provide counterValue)
+ * - {% Prompt Name %} - User-defined prompts (must provide prompts and promptValues)
  *
  * @param pattern - Title pattern with {{variable}} placeholders
  * @param settings - Templates settings (date/time formats)
  * @param targetDate - Optional date to use (defaults to now)
  * @param counterValue - Optional counter value for {{counter}} variable
+ * @param prompts - Optional user prompts configuration
+ * @param promptValues - Optional map of prompt IDs to user-entered values
  * @returns Parsed title string
  */
 export function parseTitleTemplate(
   pattern: string,
   settings: TemplatesSettings,
   targetDate?: moment.Moment,
-  counterValue?: number
+  counterValue?: number,
+  prompts?: UserPrompt[],
+  promptValues?: PromptValues
 ): string {
   const now = targetDate || moment();
 
   let result = pattern;
+
+  // First, substitute user prompts if provided
+  if (prompts && promptValues) {
+    result = substitutePrompts(result, prompts, promptValues);
+  }
 
   // Process {{counter}} - auto-incrementing integer
   result = result.replace(/\{\{counter\}\}/gi, () => {
@@ -240,14 +252,18 @@ export function sanitizeForFilename(filename: string): string {
  * @param settings - Templates settings (date/time formats)
  * @param targetDate - Optional date to use (defaults to now)
  * @param counterValue - Optional counter value for {{counter}} variable
+ * @param prompts - Optional user prompts configuration
+ * @param promptValues - Optional map of prompt IDs to user-entered values
  * @returns Sanitized filename safe for file systems
  */
 export function parseTitleTemplateToFilename(
   pattern: string,
   settings: TemplatesSettings,
   targetDate?: moment.Moment,
-  counterValue?: number
+  counterValue?: number,
+  prompts?: UserPrompt[],
+  promptValues?: PromptValues
 ): string {
-  const parsed = parseTitleTemplate(pattern, settings, targetDate, counterValue);
+  const parsed = parseTitleTemplate(pattern, settings, targetDate, counterValue, prompts, promptValues);
   return sanitizeForFilename(parsed);
 }

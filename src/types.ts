@@ -3,6 +3,25 @@
  */
 
 /**
+ * Represents a user-defined prompt that will be filled in at file creation time
+ */
+export interface UserPrompt {
+  /** Unique identifier for the prompt */
+  id: string;
+  /** Display name shown to user when prompting for value */
+  name: string;
+  /** Type of value expected: 'text' for any string, 'numeric' for numbers only */
+  valueType: 'text' | 'numeric';
+}
+
+/**
+ * Values collected from user for prompts at file creation time
+ */
+export interface PromptValues {
+  [promptId: string]: string;
+}
+
+/**
  * Represents a title template configuration
  */
 export interface TitleTemplate {
@@ -20,6 +39,8 @@ export interface TitleTemplate {
   useTemplater?: boolean;
   /** Starting value for {{counter}} variable when no matching files exist (default: 1) */
   counterStartsAt?: number;
+  /** User-defined prompts that will be filled in at file creation time */
+  userPrompts?: UserPrompt[];
 }
 
 /**
