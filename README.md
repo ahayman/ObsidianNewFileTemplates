@@ -244,6 +244,7 @@ When using custom formats with `format(...)`, the plugin provides intelligent hi
   - Token description (e.g., "4-digit year", "Full month name")
   - Live example based on current date/time
   - Context-aware ordering (date tokens appear first for date prompts, time tokens first for time prompts)
+- **Live Preview**: As you type your format string, a preview at the top of the autocomplete shows the current date/time formatted with your pattern
 
 **Common Format Tokens:**
 

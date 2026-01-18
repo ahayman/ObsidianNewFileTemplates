@@ -21,6 +21,7 @@ import {
   VALUE_TYPE_ALIASES,
 } from "../types";
 import { MOMENT_TOKENS, filterTokens, getTokenExample } from "../utils/momentTokens";
+import { moment } from "obsidian";
 
 /**
  * Represents a suggestion item for the autocomplete dropdown
@@ -38,6 +39,8 @@ interface PromptSuggestion {
   example?: string;
   /** Token category for grouping */
   tokenCategory?: string;
+  /** Whether this is a preview item (not selectable) */
+  isPreview?: boolean;
 }
 
 /**
@@ -126,10 +129,11 @@ export class PromptSuggest extends EditorSuggest<PromptSuggestion> {
       // Get the last partial token being typed (letters only, after any non-letter)
       const lastTokenMatch = formatContent.match(/([A-Za-z]*)$/);
       const query = lastTokenMatch ? lastTokenMatch[1] : "";
+      // Include the full format content for live preview (use | as separator since it can't appear in format strings)
       return {
         start: { line: cursor.line, ch: cursor.ch - query.length },
         end: cursor,
-        query: `formatToken:${formatTokenMatch[1].trim()}:${valueType}:${query}`,
+        query: `formatToken:${formatTokenMatch[1].trim()}:${valueType}:${query}|${formatContent}`,
       };
     }
 
@@ -184,8 +188,10 @@ export class PromptSuggest extends EditorSuggest<PromptSuggestion> {
       // Inside format(...) - suggest moment.js tokens
       const parts = query.slice(12).split(":");
       const valueType = parts[1] || "";
-      const tokenQuery = (parts[2] || "").toLowerCase();
-      return this.getFormatTokenSuggestions(valueType, tokenQuery);
+      // The third part contains tokenQuery|fullFormatContent
+      const tokenAndFormat = parts[2] || "";
+      const [tokenQuery, fullFormatContent] = tokenAndFormat.split("|");
+      return this.getFormatTokenSuggestions(valueType, tokenQuery.toLowerCase(), fullFormatContent || "");
     }
 
     return [];
@@ -195,7 +201,10 @@ export class PromptSuggest extends EditorSuggest<PromptSuggestion> {
    * Renders a suggestion in the dropdown
    */
   renderSuggestion(suggestion: PromptSuggestion, el: HTMLElement): void {
-    const container = el.createDiv({ cls: "prompt-suggest-item" });
+    const containerCls = suggestion.isPreview
+      ? "prompt-suggest-item prompt-suggest-preview"
+      : "prompt-suggest-item";
+    const container = el.createDiv({ cls: containerCls });
 
     const labelRow = container.createDiv({ cls: "prompt-suggest-label-row" });
     labelRow.createSpan({ cls: "prompt-suggest-label", text: suggestion.label });
@@ -221,6 +230,9 @@ export class PromptSuggest extends EditorSuggest<PromptSuggestion> {
     _evt: MouseEvent | KeyboardEvent
   ): void {
     if (!this.context) return;
+
+    // Don't do anything for preview items
+    if (suggestion.isPreview) return;
 
     const { editor, start, end } = this.context;
     editor.replaceRange(suggestion.insertText, start, end);
@@ -530,9 +542,36 @@ export class PromptSuggest extends EditorSuggest<PromptSuggestion> {
    */
   private getFormatTokenSuggestions(
     valueType: string,
-    query: string
+    query: string,
+    fullFormatContent: string
   ): PromptSuggestion[] {
     const type = valueType.toLowerCase();
+    const suggestions: PromptSuggestion[] = [];
+
+    // Add live preview at the top if there's any format content
+    if (fullFormatContent) {
+      try {
+        const formattedPreview = moment().format(fullFormatContent);
+        suggestions.push({
+          label: `Preview: ${formattedPreview}`,
+          type: "formatToken",
+          description: `Current format: ${fullFormatContent}`,
+          insertText: "", // Don't insert anything when selecting preview
+          example: "",
+          isPreview: true,
+        });
+      } catch {
+        // If format is invalid, still show what we have
+        suggestions.push({
+          label: "Preview: (invalid format)",
+          type: "formatToken",
+          description: `Current format: ${fullFormatContent}`,
+          insertText: "",
+          example: "",
+          isPreview: true,
+        });
+      }
+    }
 
     // Filter tokens based on value type context
     let relevantTokens = MOMENT_TOKENS;
@@ -571,14 +610,16 @@ export class PromptSuggest extends EditorSuggest<PromptSuggestion> {
         )
       : relevantTokens;
 
-    // Map to suggestions
-    return filtered.map((token) => ({
+    // Map to suggestions and add to list
+    suggestions.push(...filtered.map((token) => ({
       label: token.token,
       type: "formatToken" as const,
       description: token.description,
       insertText: token.token,
       example: getTokenExample(token),
       tokenCategory: token.category,
-    }));
+    })));
+
+    return suggestions;
   }
 }

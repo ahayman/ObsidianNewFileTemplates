@@ -1717,6 +1717,26 @@
   font-size: 0.85em;
 }
 
+/* Live preview item styling */
+.prompt-suggest-preview {
+  background-color: var(--background-secondary);
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  border-left: 3px solid var(--interactive-accent);
+}
+
+.prompt-suggest-preview .prompt-suggest-label {
+  color: var(--interactive-accent);
+  font-weight: 600;
+}
+
+.prompt-suggest-preview .prompt-suggest-description {
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+  font-size: 0.8em;
+}
+
 /* ========================================
    Prompt Syntax Highlighting (Main Editor)
    ======================================== */
