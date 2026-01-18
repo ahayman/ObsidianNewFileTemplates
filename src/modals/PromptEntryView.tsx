@@ -31,7 +31,7 @@ import {
   parseTime,
   parseDateTime,
 } from "../utils/dateTimeUtils";
-import { DatePicker, TimePicker, DateTimePicker } from "../components/pickers";
+import { DatePicker, TimePicker, DateTimePicker, CollapsiblePicker } from "../components/pickers";
 
 interface PromptEntryViewProps {
   template: TitleTemplate;
@@ -269,6 +269,53 @@ export function PromptEntryView({
     }
   }, [allPrompts, titlePrompts, filePrompts, values, isAllValid, onSubmit, formatValueForOutput]);
 
+  // Helper to format picker preview text for collapsed state
+  const formatPickerPreview = useCallback((value: string, valueType: string): string => {
+    if (!value) return "Not set";
+
+    switch (valueType) {
+      case "date": {
+        const date = parseDate(value);
+        if (date) {
+          return date.toLocaleDateString(undefined, {
+            weekday: "short",
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          });
+        }
+        return value;
+      }
+      case "time": {
+        const time = parseTime(value);
+        if (time) {
+          const date = new Date();
+          date.setHours(time.hours, time.minutes, 0, 0);
+          return date.toLocaleTimeString(undefined, {
+            hour: "numeric",
+            minute: "2-digit",
+          });
+        }
+        return value;
+      }
+      case "datetime": {
+        const datetime = parseDateTime(value);
+        if (datetime) {
+          return datetime.toLocaleString(undefined, {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+          });
+        }
+        return value;
+      }
+      default:
+        return value;
+    }
+  }, []);
+
   // Helper to render a single prompt field
   const renderPromptField = (prompt: UserPrompt, globalIndex: number) => {
     const value = values[prompt.id] ?? "";
@@ -307,31 +354,46 @@ export function PromptEntryView({
 
         {/* Render appropriate input based on valueType */}
         {prompt.valueType === "date" ? (
-          <DatePicker
-            value={value}
-            onChange={(newValue) => handleValueChange(prompt.id, newValue)}
-            autoFocus={globalIndex === 0}
-          />
+          <CollapsiblePicker
+            label="Date"
+            previewText={formatPickerPreview(value, "date")}
+          >
+            <DatePicker
+              value={value}
+              onChange={(newValue) => handleValueChange(prompt.id, newValue)}
+              autoFocus={globalIndex === 0}
+            />
+          </CollapsiblePicker>
         ) : prompt.valueType === "time" ? (
-          <TimePicker
-            value={value}
-            onChange={(newValue) => handleValueChange(prompt.id, newValue)}
-            format={
-              // Show 12h picker if output format is 12h-based
-              prompt.timeConfig?.outputFormat?.includes('A') ? '12h' : '24h'
-            }
-            autoFocus={globalIndex === 0}
-          />
+          <CollapsiblePicker
+            label="Time"
+            previewText={formatPickerPreview(value, "time")}
+          >
+            <TimePicker
+              value={value}
+              onChange={(newValue) => handleValueChange(prompt.id, newValue)}
+              format={
+                // Show 12h picker if output format is 12h-based
+                prompt.timeConfig?.outputFormat?.includes('A') ? '12h' : '24h'
+              }
+              autoFocus={globalIndex === 0}
+            />
+          </CollapsiblePicker>
         ) : prompt.valueType === "datetime" ? (
-          <DateTimePicker
-            value={value}
-            onChange={(newValue) => handleValueChange(prompt.id, newValue)}
-            timeFormat={
-              // Show 12h picker if output format is 12h-based
-              prompt.timeConfig?.outputFormat?.includes('A') ? '12h' : '24h'
-            }
-            autoFocus={globalIndex === 0}
-          />
+          <CollapsiblePicker
+            label="Date & Time"
+            previewText={formatPickerPreview(value, "datetime")}
+          >
+            <DateTimePicker
+              value={value}
+              onChange={(newValue) => handleValueChange(prompt.id, newValue)}
+              timeFormat={
+                // Show 12h picker if output format is 12h-based
+                prompt.timeConfig?.outputFormat?.includes('A') ? '12h' : '24h'
+              }
+              autoFocus={globalIndex === 0}
+            />
+          </CollapsiblePicker>
         ) : (
           <input
             id={`prompt-${prompt.id}`}

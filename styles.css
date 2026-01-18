@@ -1550,3 +1550,129 @@
 .file-template-prompt-modal-field.has-error .datetime-picker {
   border-color: var(--text-error);
 }
+
+/* ========================================
+   Collapsible Picker
+   ======================================== */
+
+.collapsible-picker {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.collapsible-picker:focus-within {
+  border-color: var(--interactive-accent);
+  box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+}
+
+/* Header - always visible */
+.collapsible-picker-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--background-secondary);
+  cursor: pointer;
+}
+
+.collapsible-picker-label {
+  font-weight: 500;
+  color: var(--text-normal);
+  font-size: 0.9em;
+}
+
+.collapsible-picker-preview {
+  flex: 1;
+  text-align: right;
+  color: var(--text-muted);
+  font-size: 0.9em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collapsible-picker-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.collapsible-picker-toggle:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.collapsible-picker-toggle:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+}
+
+/* Chevron icon rotation */
+.collapsible-picker-chevron {
+  transition: transform 0.2s ease;
+}
+
+.collapsible-picker-chevron.rotated {
+  transform: rotate(180deg);
+}
+
+/* Content container */
+.collapsible-picker-content {
+  overflow: hidden;
+  transition: max-height 0.25s ease, opacity 0.2s ease;
+}
+
+.collapsible-picker-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+
+.collapsible-picker-content.expanded {
+  max-height: 500px;
+  opacity: 1;
+}
+
+/* Remove borders from nested pickers since collapsible already has border */
+.collapsible-picker .date-picker,
+.collapsible-picker .time-picker,
+.collapsible-picker .datetime-picker {
+  border: none;
+  border-radius: 0;
+  margin-top: 0;
+}
+
+/* Remove focus states from nested pickers - collapsible handles it */
+.collapsible-picker .date-picker:focus-within,
+.collapsible-picker .time-picker:focus-within,
+.collapsible-picker .datetime-picker:focus-within {
+  box-shadow: none;
+}
+
+/* Mobile Collapsible Picker */
+.is-mobile .collapsible-picker-header {
+  padding: 12px 14px;
+  min-height: 44px;
+}
+
+.is-mobile .collapsible-picker-toggle {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 8px;
+}
+
+.is-mobile .collapsible-picker-label {
+  font-size: 0.95em;
+}
+
+.is-mobile .collapsible-picker-preview {
+  font-size: 0.9em;
+}

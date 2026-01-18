@@ -10,3 +10,4 @@ export { DateTimePicker } from "./DateTimePicker";
 export { CalendarGrid } from "./CalendarGrid";
 export { WheelColumn } from "./WheelColumn";
 export { DatePickerHeader } from "./DatePickerHeader";
+export { CollapsiblePicker } from "./CollapsiblePicker";
