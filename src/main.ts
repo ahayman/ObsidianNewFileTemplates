@@ -190,10 +190,12 @@ export default class FileTemplatePlugin extends Plugin {
       const hasFilePrompts = filePrompts.length > 0;
 
       let promptResult: PromptEntryResult | null = null;
+      // Extract title prompts once and reuse - IDs must match between modal and substitution
+      let titlePrompts: UserPrompt[] = [];
 
       if (hasTitlePrompts || hasFilePrompts) {
         // Extract title prompts from pattern (pattern is the source of truth)
-        const titlePrompts = hasTitlePrompts
+        titlePrompts = hasTitlePrompts
           ? extractPrompts(template.titlePattern)
           : [];
 
@@ -230,11 +232,6 @@ export default class FileTemplatePlugin extends Plugin {
         counterValue = getNextCounterValue(this.app, template, folderPath);
       }
 
-      // Extract prompts for filename generation
-      const titlePrompts = promptResult?.titleValues
-        ? extractPrompts(template.titlePattern)
-        : undefined;
-
       // Generate the filename from the title pattern
       // Uses user's date/time format settings from Templates plugin
       const templatesSettings = getTemplatesSettings(this.app);
@@ -243,7 +240,7 @@ export default class FileTemplatePlugin extends Plugin {
         templatesSettings,
         undefined, // targetDate - use default (now)
         counterValue,
-        titlePrompts,
+        titlePrompts.length > 0 ? titlePrompts : undefined,
         promptResult?.titleValues
       );
 
