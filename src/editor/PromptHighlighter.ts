@@ -194,6 +194,9 @@ function buildDecorations(view: EditorView): DecorationSet {
   // Find code block ranges to exclude
   const codeBlockRanges = findCodeBlockRanges(text);
 
+  // Collect all decorations first, then sort and add
+  const decorations: Array<{ from: number; to: number; decoration: Decoration }> = [];
+
   // Process each visible range for better performance
   for (const { from, to } of view.visibleRanges) {
     const visibleText = text.slice(from, to);
@@ -216,12 +219,12 @@ function buildDecorations(view: EditorView): DecorationSet {
 
       // Opening bracket: {% or {%?
       const openBracketEnd = pos + 2; // {%
-      builder.add(pos, openBracketEnd, bracketDecoration);
+      decorations.push({ from: pos, to: openBracketEnd, decoration: bracketDecoration });
       pos = openBracketEnd;
 
       // Optional marker after {%
       if (openOptional === "?") {
-        builder.add(pos, pos + 1, optionalMarkerDecoration);
+        decorations.push({ from: pos, to: pos + 1, decoration: optionalMarkerDecoration });
         pos += 1;
       }
 
@@ -233,31 +236,45 @@ function buildDecorations(view: EditorView): DecorationSet {
       // Parse the content to get parts
       const parts = parsePromptContent(contentStr, contentStart);
 
-      // Add decorations for each part
-      builder.add(parts.name.start, parts.name.end, nameDecoration);
+      // Add name decoration
+      decorations.push({ from: parts.name.start, to: parts.name.end, decoration: nameDecoration });
 
-      for (const colon of parts.colons) {
-        builder.add(colon.pos, colon.pos + 1, colonDecoration);
+      // Add first colon if present
+      if (parts.colons.length > 0) {
+        decorations.push({ from: parts.colons[0].pos, to: parts.colons[0].pos + 1, decoration: colonDecoration });
       }
 
+      // Add type decoration
       if (parts.type) {
-        builder.add(parts.type.start, parts.type.end, typeDecoration);
+        decorations.push({ from: parts.type.start, to: parts.type.end, decoration: typeDecoration });
       }
 
+      // Add second colon if present
+      if (parts.colons.length > 1) {
+        decorations.push({ from: parts.colons[1].pos, to: parts.colons[1].pos + 1, decoration: colonDecoration });
+      }
+
+      // Add format decoration
       if (parts.format) {
-        builder.add(parts.format.start, parts.format.end, formatDecoration);
+        decorations.push({ from: parts.format.start, to: parts.format.end, decoration: formatDecoration });
       }
 
       // Optional marker before closing
       pos = contentEnd;
       if (closeOptional === "?") {
-        builder.add(pos, pos + 1, optionalMarkerDecoration);
+        decorations.push({ from: pos, to: pos + 1, decoration: optionalMarkerDecoration });
         pos += 1;
       }
 
       // Closing bracket: %}
-      builder.add(pos, pos + 2, bracketDecoration);
+      decorations.push({ from: pos, to: pos + 2, decoration: bracketDecoration });
     }
+  }
+
+  // Sort decorations by position and add to builder
+  decorations.sort((a, b) => a.from - b.from || a.to - b.to);
+  for (const { from, to, decoration } of decorations) {
+    builder.add(from, to, decoration);
   }
 
   return builder.finish();
