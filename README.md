@@ -27,9 +27,18 @@ Create new notes with templated titles and optional file content templates. Quic
 ## Installation
 
 ### From Obsidian Community Plugins (Recommended)
-1. Open Settings → Community Plugins
-2. Search for "New File Templates"
-3. Click Install, then Enable
+Note: This plugin hasn't been submitted yet, so this isn't available.
+1. ~~Open Settings → Community Plugins~~
+2. ~~Search for "New File Templates"~~
+3. ~~Click Install, then Enable~~
+
+### BRAT Installation (for beta testing)
+1. Open Settings -> Community Plugins
+2. Search for "BRAT"
+3. Install, Enable the plugin, and open BRAT settings.
+4. Find the button that say "Add Beta Plugin" and click it.
+5. Enter the address of this repo and install it: https://github.com/ahayman/ObsidianNewFileTemplates
+6. Make sure the New Files Template plugin is enabled.
 
 ### Manual Installation
 1. Download `main.js`, `manifest.json`, and `styles.css` from the latest release
