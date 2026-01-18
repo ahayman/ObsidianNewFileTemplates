@@ -98,50 +98,88 @@ Note: `{{counter}}` can only be used once per template pattern.
 
 User prompts let you add dynamic input fields that are filled in when creating a new file. Unlike built-in variables which are auto-generated, prompts ask you for a value at file creation time.
 
-**Syntax:** `{% Prompt Name %}`
+**Basic Syntax:** `{% Prompt Name %}`
+
+**Inline Configuration Syntax:** `{% Name:type:format %}`
+
+You can configure prompt type and format directly in the syntax:
+
+| Syntax | Description |
+|--------|-------------|
+| `{% Title %}` | Basic text prompt |
+| `{% Title:text %}` | Explicit text type |
+| `{% Count:number %}` | Numeric input |
+| `{% Date:date:ISO %}` | Date with ISO format |
+| `{% Time:time:12-hour %}` | Time with 12-hour format |
+| `{% When:datetime:ISO,24-hour %}` | DateTime with date and time formats |
+| `{% Date:date:format(MMM DD, YYYY) %}` | Custom format |
+
+**Optional Prompts:** `{%? Name ?%}`
+
+Optional prompts don't require a value. If left empty, an empty string is used:
+
+| Syntax | Description |
+|--------|-------------|
+| `{%? Subtitle ?%}` | Optional text field |
+| `{%? Author:text ?%}` | Optional with explicit type |
+| `{%? Date:date:ISO ?%}` | Optional date with format |
+| `{% Title %}-{%? Subtitle ?%}` | Mixed required and optional |
+
+Optional prompts show "(optional)" in the input form and pass validation even when empty.
 
 **Adding Prompts to Templates:**
 
 1. In the template editor, click "Add Prompt"
-2. Configure the prompt name and value type
+2. Configure the prompt name, value type, and optional status
 3. Click "Insert" to add the prompt syntax to your title pattern
+
+Or type the syntax directly using the inline configuration format.
 
 **Value Types:**
 
-| Type | Description | Input Method |
-|------|-------------|--------------|
-| `Text` | Any text input | Text field |
-| `Numeric` | Numbers only | Number keyboard on mobile |
-| `Date` | Date selection | Calendar picker |
-| `Time` | Time selection | Scrollable wheel picker |
-| `Date & Time` | Both date and time | Calendar + time picker |
+| Type | Syntax Keyword | Description | Input Method |
+|------|----------------|-------------|--------------|
+| Text | `text` | Any text input | Text field |
+| Numeric | `number` or `numeric` | Numbers only | Number keyboard on mobile |
+| Date | `date` | Date selection | Calendar picker |
+| Time | `time` | Time selection | Scrollable wheel picker |
+| Date & Time | `datetime` | Both date and time | Calendar + time picker |
 
-**Date Format Options:**
+**Date Format Presets:**
 
-For date and datetime prompts, you can configure the output format:
+Use these preset names in the syntax or configure in the prompt editor:
 
-| Format | Example |
-|--------|---------|
-| YYYY-MM-DD (ISO) | 2024-03-15 |
-| YYYYMMDD (compact) | 20240315 |
-| MM-DD-YYYY (US) | 03-15-2024 |
-| DD-MM-YYYY (European) | 15-03-2024 |
-| MMM DD, YYYY | Mar 15, 2024 |
-| MMMM DD, YYYY | March 15, 2024 |
-| Custom format | Any moment.js format |
+| Preset Name | Format | Example |
+|-------------|--------|---------|
+| `ISO` | YYYY-MM-DD | 2024-03-15 |
+| `compact` | YYYYMMDD | 20240315 |
+| `US` | MM-DD-YYYY | 03-15-2024 |
+| `EU` | DD-MM-YYYY | 15-03-2024 |
+| `short` | MMM DD, YYYY | Mar 15, 2024 |
+| `long` | MMMM DD, YYYY | March 15, 2024 |
+| `format(...)` | Custom | Any moment.js format |
 
-**Time Format Options:**
+**Time Format Presets:**
 
-For time and datetime prompts, you can configure the output format:
+| Preset Name | Format | Example |
+|-------------|--------|---------|
+| `ISO` | HH:mm:ss | 14:30:45 |
+| `24-hour` | HH:mm | 14:30 |
+| `24-compact` | HHmm | 1430 |
+| `12-hour` | h:mm A | 2:30 PM |
+| `12-padded` | hh:mm A | 02:30 PM |
+| `format(...)` | Custom | Any moment.js format |
 
-| Format | Example |
-|--------|---------|
-| h:mm A (12-hour) | 2:30 PM |
-| hh:mm A (12-hour padded) | 02:30 PM |
-| HH:mm:ss (ISO) | 14:30:45 |
-| HH:mm (24-hour) | 14:30 |
-| HHmm (24-hour compact) | 1430 |
-| Custom format | Any moment.js format |
+**DateTime Format Examples:**
+
+For datetime prompts, specify both date and time formats separated by comma:
+
+| Syntax | Result |
+|--------|--------|
+| `{% When:datetime:ISO,ISO %}` | 2024-03-15T14:30:45 |
+| `{% When:datetime:US,12-hour %}` | 03-15-2024 2:30 PM |
+| `{% When:datetime:compact,24-compact %}` | 20240315 1430 |
+| `{% When:datetime:format(MMM DD),format(h A) %}` | Mar 15 2 PM |
 
 **ISO DateTime Combination:**
 
@@ -171,6 +209,14 @@ If you use the same prompt name multiple times in a pattern, you only need to en
 - Prompts: Author (text)
 - User enters: "Jane Doe"
 - Result: `Jane Doe/Jane Doe-notes.md`
+
+**Optional Prompt Example:**
+
+Create flexible templates where some fields are optional:
+- Pattern: `{% Title %}{%? - Subtitle ?%}`
+- Prompts: Title (required), Subtitle (optional)
+- With subtitle: `My Article - Part One.md`
+- Without subtitle: `My Article.md`
 
 ### File Template Variables
 
