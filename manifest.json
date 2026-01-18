@@ -1,9 +1,9 @@
 {
   "id": "new-file-templates",
   "name": "New File Templates",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "minAppVersion": "1.0.0",
-  "description": "Create new notes with templated titles and apply file templates",
+  "description": "Create new notes with dynamic file names and content using date formats, counters, user prompting, and custom template syntax.",
   "author": "Aaron Hayman",
   "authorUrl": "https://github.com/aaronhayman",
   "isDesktopOnly": false
