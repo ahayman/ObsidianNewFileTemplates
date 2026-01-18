@@ -134,6 +134,10 @@ export function PromptEntryView({
         if (datetime) {
           // For datetime, check if either format is custom
           if (dateFormat === 'custom' || timeFormat === 'custom') {
+            // If both are custom with the same format (from inline syntax), use it directly
+            if (dateFormat === 'custom' && timeFormat === 'custom' && customDateFormat === customTimeFormat) {
+              return formatCustom(datetime, customDateFormat);
+            }
             // If only date custom, format date with custom and time with preset
             if (dateFormat === 'custom' && timeFormat !== 'custom') {
               return `${formatCustom(datetime, customDateFormat)} ${formatTimeOutput(datetime.getHours(), datetime.getMinutes(), timeFormat)}`;
@@ -142,7 +146,7 @@ export function PromptEntryView({
             if (dateFormat !== 'custom' && timeFormat === 'custom') {
               return `${formatDateOutput(datetime, dateFormat)} ${formatCustom(datetime, customTimeFormat)}`;
             }
-            // Both custom - combine into single format string
+            // Both custom with different formats - combine into single format string
             return formatCustom(datetime, `${customDateFormat} ${customTimeFormat}`);
           }
           return formatDateTimeOutput(datetime, dateFormat, timeFormat);
@@ -277,6 +281,12 @@ export function PromptEntryView({
                   <span className="file-template-prompt-item-type">
                     {" "}
                     ({typeLabel})
+                  </span>
+                )}
+                {prompt.isOptional && (
+                  <span className="file-template-prompt-optional-badge">
+                    {" "}
+                    (optional)
                   </span>
                 )}
               </label>

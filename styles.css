@@ -786,6 +786,49 @@
   color: var(--text-accent);
 }
 
+/* Inline configuration notice */
+.file-template-editor-notice {
+  padding: 12px 14px;
+  background: var(--background-primary-alt);
+  border-radius: 6px;
+  border-left: 3px solid var(--interactive-accent);
+  color: var(--text-muted);
+  font-size: 0.9em;
+  line-height: 1.5;
+}
+
+.file-template-editor-notice code {
+  background: var(--background-modifier-hover);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--font-monospace);
+  font-size: 0.85em;
+  color: var(--text-normal);
+}
+
+/* Inline badge on prompt items */
+.file-template-prompt-item-inline-badge {
+  padding: 2px 6px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-radius: 4px;
+  font-size: 0.7em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Optional badge on prompt items and labels */
+.file-template-prompt-optional-badge {
+  padding: 2px 6px;
+  background: var(--background-modifier-hover);
+  color: var(--text-muted);
+  border-radius: 4px;
+  font-size: 0.7em;
+  font-weight: 500;
+  font-style: italic;
+}
+
 /* Mobile prompt styles */
 .is-mobile .file-template-prompts-add-btn {
   padding: 10px 16px;

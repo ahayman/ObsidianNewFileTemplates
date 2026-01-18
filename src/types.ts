@@ -26,6 +26,10 @@ export interface UserPrompt {
     /** Custom format string when outputFormat is 'custom' */
     customFormat?: string;
   };
+  /** Whether this prompt's type and format are configured via inline syntax */
+  isInlineConfigured?: boolean;
+  /** Whether this prompt is optional (empty values allowed) */
+  isOptional?: boolean;
 }
 
 /**
@@ -51,6 +55,65 @@ export type TimeOutputFormat =
   | 'h:mm A'          // 2:30 PM (12h, default)
   | 'hh:mm A'         // 02:30 PM (12h padded)
   | 'custom';         // User-defined format
+
+/**
+ * Preset names that can be used in prompt syntax
+ * Maps user-friendly names to actual format strings
+ */
+export const DATE_FORMAT_PRESETS: Record<string, DateOutputFormat> = {
+  'ISO': 'YYYY-MM-DD',
+  'compact': 'YYYYMMDD',
+  'US': 'MM-DD-YYYY',
+  'EU': 'DD-MM-YYYY',
+  'short': 'MMM DD, YYYY',
+  'long': 'MMMM DD, YYYY',
+};
+
+export const TIME_FORMAT_PRESETS: Record<string, TimeOutputFormat> = {
+  'ISO': 'HH:mm:ss',
+  '24-hour': 'HH:mm',
+  '24-compact': 'HHmm',
+  '12-hour': 'h:mm A',
+  '12-padded': 'hh:mm A',
+};
+
+/**
+ * Value types for prompts that can be specified in syntax
+ */
+export type PromptValueType = 'text' | 'numeric' | 'date' | 'time' | 'datetime';
+
+/**
+ * Maps syntax type names to internal value types
+ */
+export const VALUE_TYPE_ALIASES: Record<string, PromptValueType> = {
+  'text': 'text',
+  'number': 'numeric',
+  'numeric': 'numeric',
+  'date': 'date',
+  'time': 'time',
+  'datetime': 'datetime',
+};
+
+/**
+ * Represents parsed configuration from prompt syntax
+ * e.g., {% Name:date:ISO %} -> { name: "Name", valueType: "date", dateFormat: "YYYY-MM-DD" }
+ */
+export interface ParsedPromptSyntax {
+  /** The prompt name (display name) */
+  name: string;
+  /** Type of value expected */
+  valueType: PromptValueType;
+  /** Date format (for date/datetime types) */
+  dateFormat?: DateOutputFormat;
+  /** Time format (for time/datetime types) */
+  timeFormat?: TimeOutputFormat;
+  /** Custom format string (when using format(...) syntax) */
+  customFormat?: string;
+  /** Whether this prompt was configured inline (in the syntax) */
+  isInlineConfigured?: boolean;
+  /** Whether this prompt is optional (empty values allowed) */
+  isOptional?: boolean;
+}
 
 /**
  * Values collected from user for prompts at file creation time

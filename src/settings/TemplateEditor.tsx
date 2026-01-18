@@ -351,7 +351,7 @@ export function TemplateEditor({ template, templateFolder, onSave, onCancel }: T
                     );
                   }}
                   onInsert={() => {
-                    const syntax = createPromptSyntax(prompt.name);
+                    const syntax = createPromptSyntax(prompt.name, prompt.isOptional);
                     setTitlePattern((prev) => prev + syntax);
                   }}
                 />
