@@ -28,6 +28,7 @@ import {
   replacePromptSyntax,
   removePromptSyntax,
 } from "../utils/promptParser";
+import { SyntaxInput } from "../components";
 
 interface TemplateEditorProps {
   /** Template to edit, or undefined for creating new */
@@ -259,13 +260,13 @@ export function TemplateEditor({ template, templateFolder, onSave, onCancel }: T
         <label className="file-template-editor-label" htmlFor="template-pattern">
           Title Pattern
         </label>
-        <input
+        <SyntaxInput
           id="template-pattern"
-          type="text"
-          className="file-template-editor-input"
           value={titlePattern}
-          onChange={(e) => setTitlePattern(e.target.value)}
+          onChange={setTitlePattern}
           placeholder="e.g., {{date}}-{{time}}"
+          enableVariables={true}
+          enablePrompts={true}
         />
         {errors.titlePattern && (
           <div className="file-template-editor-error">{errors.titlePattern}</div>

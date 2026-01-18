@@ -1676,3 +1676,171 @@
 .is-mobile .collapsible-picker-preview {
   font-size: 0.9em;
 }
+
+/* ========================================
+   Prompt Suggest (Editor Autocomplete)
+   ======================================== */
+
+/* Suggestion item container */
+.prompt-suggest-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 0;
+}
+
+/* Label row with label and example */
+.prompt-suggest-label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Main label */
+.prompt-suggest-label {
+  font-weight: 500;
+  color: var(--text-normal);
+  font-family: var(--font-monospace);
+  font-size: 0.95em;
+}
+
+/* Format example (e.g., "2026-01-18") */
+.prompt-suggest-example {
+  color: var(--text-muted);
+  font-size: 0.85em;
+  font-family: var(--font-monospace);
+}
+
+/* Description text */
+.prompt-suggest-description {
+  color: var(--text-faint);
+  font-size: 0.85em;
+}
+
+/* ========================================
+   Prompt Syntax Highlighting (Main Editor)
+   ======================================== */
+
+/* Brackets: {% and %} */
+.cm-prompt-bracket {
+  color: var(--text-success);
+  font-weight: 600;
+}
+
+/* Optional markers: ? in {%? and ?%} */
+.cm-prompt-optional-marker {
+  color: var(--text-success);
+  opacity: 0.7;
+}
+
+/* Prompt name */
+.cm-prompt-name {
+  color: var(--text-success);
+}
+
+/* Colons between parts */
+.cm-prompt-colon {
+  color: var(--text-muted);
+}
+
+/* Type (text, number, date, time, datetime) */
+.cm-prompt-type {
+  color: var(--text-accent);
+}
+
+/* Format (ISO, compact, etc.) */
+.cm-prompt-format {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ========================================
+   Variable Syntax Highlighting (Settings)
+   ======================================== */
+
+/* Brackets: {{ and }} */
+.cm-variable-bracket {
+  color: var(--text-accent);
+  font-weight: 600;
+}
+
+/* Valid variable name */
+.cm-variable-name {
+  color: var(--text-accent);
+}
+
+/* Invalid/unrecognized variable name */
+.cm-variable-invalid {
+  color: var(--text-error);
+  text-decoration: wavy underline;
+  text-decoration-color: var(--text-error);
+}
+
+/* ========================================
+   SyntaxInput Component (Settings)
+   ======================================== */
+
+.file-template-syntax-input {
+  width: 100%;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-primary);
+  font-family: var(--font-monospace);
+  font-size: 0.95em;
+}
+
+.file-template-syntax-input:focus-within {
+  border-color: var(--interactive-accent);
+  box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+}
+
+.file-template-syntax-input .cm-editor {
+  background: transparent;
+}
+
+.file-template-syntax-input .cm-editor.cm-focused {
+  outline: none;
+}
+
+.file-template-syntax-input .cm-content {
+  font-family: var(--font-monospace);
+  caret-color: var(--text-normal);
+}
+
+.file-template-syntax-input .cm-cursor {
+  border-left-color: var(--text-normal);
+}
+
+.file-template-syntax-input .cm-placeholder {
+  color: var(--text-faint);
+}
+
+/* Autocomplete popup styling */
+.file-template-syntax-input .cm-tooltip-autocomplete {
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  box-shadow: var(--shadow-s);
+}
+
+.file-template-syntax-input .cm-tooltip-autocomplete ul {
+  font-family: var(--font-monospace);
+}
+
+.file-template-syntax-input .cm-tooltip-autocomplete li {
+  padding: 4px 8px;
+}
+
+.file-template-syntax-input .cm-tooltip-autocomplete li[aria-selected] {
+  background: var(--background-modifier-hover);
+}
+
+.file-template-syntax-input .cm-completionLabel {
+  color: var(--text-normal);
+}
+
+.file-template-syntax-input .cm-completionDetail {
+  color: var(--text-muted);
+  margin-left: 8px;
+  font-style: italic;
+}

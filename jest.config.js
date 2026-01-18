@@ -16,6 +16,11 @@ module.exports = {
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
     "^obsidian$": "<rootDir>/__mocks__/obsidian.ts",
+    "^@codemirror/view$": "<rootDir>/__mocks__/@codemirror/view.ts",
+    "^@codemirror/state$": "<rootDir>/__mocks__/@codemirror/state.ts",
+    "^@codemirror/commands$": "<rootDir>/__mocks__/@codemirror/commands.ts",
+    "^@codemirror/autocomplete$": "<rootDir>/__mocks__/@codemirror/autocomplete.ts",
+    "^../components$": "<rootDir>/__mocks__/SyntaxInput.tsx",
   },
   setupFilesAfterEnv: ["@testing-library/jest-dom"],
   collectCoverageFrom: [

@@ -18,6 +18,7 @@ import {
   doesTemplaterAutoProcess,
   processTemplaterInFile,
 } from "./services/TemplaterService";
+import { PromptSuggest, promptHighlighter } from "./editor";
 
 export default class FileTemplatePlugin extends Plugin {
   settings: PluginSettings = DEFAULT_SETTINGS;
@@ -67,6 +68,12 @@ export default class FileTemplatePlugin extends Plugin {
     this.addRibbonIcon("file-plus", "Create New Templated File", () => {
       this.openTemplateModal();
     });
+
+    // Register editor suggest for prompt syntax autocomplete
+    this.registerEditorSuggest(new PromptSuggest(this.app));
+
+    // Register editor extension for prompt syntax highlighting
+    this.registerEditorExtension(promptHighlighter);
   }
 
   async onunload(): Promise<void> {
