@@ -883,6 +883,21 @@
   gap: 16px;
 }
 
+.file-template-prompt-section-header {
+  font-weight: 600;
+  font-size: 0.9em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-bottom: 4px;
+  margin-top: 8px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.file-template-prompt-section-header:first-child {
+  margin-top: 0;
+}
+
 .file-template-prompt-modal-field {
   display: flex;
   flex-direction: column;

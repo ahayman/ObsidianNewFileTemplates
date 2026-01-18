@@ -1,12 +1,18 @@
-import { Plugin, TFolder, TAbstractFile, Menu, Notice } from "obsidian";
-import { PluginSettings, DEFAULT_SETTINGS, TitleTemplate, PromptValues } from "./types";
+import { Plugin, TFolder, TAbstractFile, TFile, Menu, Notice } from "obsidian";
+import { PluginSettings, DEFAULT_SETTINGS, TitleTemplate, PromptValues, UserPrompt } from "./types";
 import { FileService, getNextCounterValue } from "./services";
 import { openTemplateSelectModal } from "./modals";
-import { openPromptEntryModal } from "./modals/PromptEntryModal";
+import { openPromptEntryModal, PromptEntryResult } from "./modals/PromptEntryModal";
+import { openFilePromptEntryModal } from "./modals/FilePromptEntryModal";
 import { FileTemplateSettingsTab } from "./settings";
 import { parseTitleTemplateToFilename, getTemplatesSettings } from "./utils";
 import { hasCounterVariable } from "./utils/templateParser";
-import { hasPrompts, syncPromptsWithPattern } from "./utils/promptParser";
+import {
+  hasPrompts,
+  extractPrompts,
+  extractPromptsFromContent,
+  substitutePromptsInContent,
+} from "./utils/promptParser";
 import {
   isTemplaterEnabled,
   doesTemplaterAutoProcess,
@@ -29,6 +35,22 @@ export default class FileTemplatePlugin extends Plugin {
       name: "Create New Templated File",
       callback: () => {
         this.openTemplateModal();
+      },
+    });
+
+    // Register command to enter file prompts in current file
+    this.addCommand({
+      id: "enter-file-prompts",
+      name: "Enter File Prompts",
+      checkCallback: (checking: boolean) => {
+        const activeFile = this.app.workspace.getActiveFile();
+        if (activeFile && activeFile.extension === "md") {
+          if (!checking) {
+            this.enterFilePrompts(activeFile);
+          }
+          return true;
+        }
+        return false;
       },
     });
 
@@ -147,24 +169,46 @@ export default class FileTemplatePlugin extends Plugin {
     targetFolder?: TFolder
   ): Promise<void> {
     try {
-      // Check if template has user prompts
-      let promptValues: PromptValues | undefined;
-      if (hasPrompts(template.titlePattern)) {
-        // Sync prompts from pattern with stored prompts (to get valueType settings)
-        const prompts = syncPromptsWithPattern(
-          template.titlePattern,
-          template.userPrompts
+      // Get file template content first (needed to extract file prompts)
+      let rawTemplateContent: string | null = null;
+      let filePrompts: UserPrompt[] = [];
+
+      if (template.fileTemplate) {
+        rawTemplateContent = await this.fileService.getTemplateContent(
+          template.fileTemplate
+        );
+        if (rawTemplateContent) {
+          // Extract prompts from file template content
+          filePrompts = extractPromptsFromContent(rawTemplateContent);
+        } else {
+          new Notice(`Template file not found: ${template.fileTemplate}`);
+        }
+      }
+
+      // Check if we need to show prompt entry modal
+      const hasTitlePrompts = hasPrompts(template.titlePattern);
+      const hasFilePrompts = filePrompts.length > 0;
+
+      let promptResult: PromptEntryResult | null = null;
+
+      if (hasTitlePrompts || hasFilePrompts) {
+        // Extract title prompts from pattern (pattern is the source of truth)
+        const titlePrompts = hasTitlePrompts
+          ? extractPrompts(template.titlePattern)
+          : [];
+
+        // Show prompt entry modal with both title and file prompts
+        promptResult = await openPromptEntryModal(
+          this.app,
+          template,
+          titlePrompts,
+          filePrompts
         );
 
-        // Show prompt entry modal
-        const values = await openPromptEntryModal(this.app, template, prompts);
-
         // If user cancelled, abort file creation
-        if (values === null) {
+        if (promptResult === null) {
           return;
         }
-
-        promptValues = values;
       }
 
       // Determine the target folder
@@ -186,9 +230,9 @@ export default class FileTemplatePlugin extends Plugin {
         counterValue = getNextCounterValue(this.app, template, folderPath);
       }
 
-      // Sync prompts again if we have prompt values (for the filename generation)
-      const prompts = promptValues
-        ? syncPromptsWithPattern(template.titlePattern, template.userPrompts)
+      // Extract prompts for filename generation
+      const titlePrompts = promptResult?.titleValues
+        ? extractPrompts(template.titlePattern)
         : undefined;
 
       // Generate the filename from the title pattern
@@ -199,21 +243,25 @@ export default class FileTemplatePlugin extends Plugin {
         templatesSettings,
         undefined, // targetDate - use default (now)
         counterValue,
-        prompts,
-        promptValues
+        titlePrompts,
+        promptResult?.titleValues
       );
 
-      // Get file template content if specified
+      // Process file template content
       let content = "";
-      if (template.fileTemplate) {
-        const templateContent = await this.fileService.getTemplateContent(
-          template.fileTemplate
-        );
-        if (templateContent) {
-          content = this.fileService.processFileTemplate(templateContent, filename);
-        } else {
-          new Notice(`Template file not found: ${template.fileTemplate}`);
+      if (rawTemplateContent) {
+        // Step 1: Substitute file prompts first (before any other processing)
+        let processedContent = rawTemplateContent;
+        if (filePrompts.length > 0 && promptResult?.fileValues) {
+          processedContent = substitutePromptsInContent(
+            processedContent,
+            filePrompts,
+            promptResult.fileValues
+          );
         }
+
+        // Step 2: Process file template variables ({{title}}, {{date}}, etc.)
+        content = this.fileService.processFileTemplate(processedContent, filename);
       }
 
       // Create the file
@@ -263,5 +311,44 @@ export default class FileTemplatePlugin extends Plugin {
       return;
     }
     this.createFileFromTemplate(template);
+  }
+
+  /**
+   * Enter file prompts for an existing file
+   * Extracts prompts from the file content, shows modal, and substitutes values
+   */
+  private async enterFilePrompts(file: TFile): Promise<void> {
+    try {
+      // Read the file content
+      const content = await this.app.vault.read(file);
+
+      // Extract prompts from content (ignores prompts in code blocks)
+      const prompts = extractPromptsFromContent(content);
+
+      // If no prompts found, show toast and return
+      if (prompts.length === 0) {
+        new Notice("No prompts found in this file.");
+        return;
+      }
+
+      // Show prompt entry modal
+      const values = await openFilePromptEntryModal(this.app, file, prompts);
+
+      // If user cancelled, abort
+      if (values === null) {
+        return;
+      }
+
+      // Substitute prompts in content with values
+      const newContent = substitutePromptsInContent(content, prompts, values);
+
+      // Save the file
+      await this.app.vault.modify(file, newContent);
+
+      new Notice(`Updated: ${file.basename}.md`);
+    } catch (error) {
+      console.error("Failed to process file prompts:", error);
+      new Notice(`Failed to process file prompts: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
   }
 }

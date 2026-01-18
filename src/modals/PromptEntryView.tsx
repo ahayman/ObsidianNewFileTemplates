@@ -35,22 +35,35 @@ import { DatePicker, TimePicker, DateTimePicker } from "../components/pickers";
 
 interface PromptEntryViewProps {
   template: TitleTemplate;
-  prompts: UserPrompt[];
-  onSubmit: (values: PromptValues) => void;
+  /** @deprecated Use titlePrompts and filePrompts instead */
+  prompts?: UserPrompt[];
+  /** Prompts for the title pattern */
+  titlePrompts?: UserPrompt[];
+  /** Prompts for the file content */
+  filePrompts?: UserPrompt[];
+  onSubmit: (values: PromptValues, fileValues?: PromptValues) => void;
   onCancel: () => void;
 }
 
 export function PromptEntryView({
   template,
   prompts,
+  titlePrompts: titlePromptsProp,
+  filePrompts: filePromptsProp,
   onSubmit,
   onCancel,
 }: PromptEntryViewProps) {
+  // Support both old (prompts) and new (titlePrompts/filePrompts) API
+  const titlePrompts = titlePromptsProp ?? prompts ?? [];
+  const filePrompts = filePromptsProp ?? [];
+  const allPrompts = [...titlePrompts, ...filePrompts];
+  const hasBothSections = titlePrompts.length > 0 && filePrompts.length > 0;
+
   // Initialize values - date/time prompts default to "now"
   const [values, setValues] = useState<PromptValues>(() => {
     const initial: PromptValues = {};
     const now = new Date();
-    for (const prompt of prompts) {
+    for (const prompt of allPrompts) {
       switch (prompt.valueType) {
         case "date":
           initial[prompt.id] = formatDate(now, "YYYY-MM-DD");
@@ -90,8 +103,8 @@ export function PromptEntryView({
 
   // Check if all values are valid
   const isAllValid = useMemo(() => {
-    return allPromptsValid(prompts, values);
-  }, [prompts, values]);
+    return allPromptsValid(allPrompts, values);
+  }, [allPrompts, values]);
 
   // Format a value for output based on prompt configuration
   const formatValueForOutput = useCallback((prompt: UserPrompt, value: string): string => {
@@ -158,10 +171,10 @@ export function PromptEntryView({
     }
   }, []);
 
-  // Generate formatted values for preview
+  // Generate formatted values for preview (title prompts only)
   const formattedValuesForPreview = useMemo(() => {
     const formatted: PromptValues = {};
-    for (const prompt of prompts) {
+    for (const prompt of titlePrompts) {
       const rawValue = values[prompt.id] ?? "";
       if (rawValue) {
         formatted[prompt.id] = formatValueForOutput(prompt, rawValue);
@@ -170,15 +183,15 @@ export function PromptEntryView({
       }
     }
     return formatted;
-  }, [prompts, values, formatValueForOutput]);
+  }, [titlePrompts, values, formatValueForOutput]);
 
   // Generate title preview
   const titlePreview = useMemo(() => {
     // First substitute prompts with formatted values, then parse built-in variables
-    const withPrompts = previewWithPrompts(template.titlePattern, prompts, formattedValuesForPreview);
+    const withPrompts = previewWithPrompts(template.titlePattern, titlePrompts, formattedValuesForPreview);
     // Parse built-in variables for full preview
     return parseTemplate(withPrompts);
-  }, [template.titlePattern, prompts, formattedValuesForPreview]);
+  }, [template.titlePattern, titlePrompts, formattedValuesForPreview]);
 
   // Handle value change
   const handleValueChange = useCallback(
@@ -186,7 +199,7 @@ export function PromptEntryView({
       setValues((prev) => ({ ...prev, [promptId]: value }));
 
       // Find the prompt for validation
-      const prompt = prompts.find((p) => p.id === promptId);
+      const prompt = allPrompts.find((p) => p.id === promptId);
       if (prompt) {
         const result = validatePromptValue(value, prompt);
         setErrors((prev) => ({
@@ -195,7 +208,7 @@ export function PromptEntryView({
         }));
       }
     },
-    [prompts]
+    [allPrompts]
   );
 
   // Handle field blur (mark as touched)
@@ -209,7 +222,7 @@ export function PromptEntryView({
       if (e.key === "Enter") {
         e.preventDefault();
         // Move to next field or submit
-        if (index < prompts.length - 1) {
+        if (index < allPrompts.length - 1) {
           inputRefs.current[index + 1]?.focus();
         } else {
           // Last field - focus submit button
@@ -219,132 +232,174 @@ export function PromptEntryView({
         onCancel();
       }
     },
-    [prompts.length, onCancel]
+    [allPrompts.length, onCancel]
   );
 
   // Handle submit
   const handleSubmit = useCallback(() => {
     // Mark all fields as touched to show any errors
     const allTouched: Record<string, boolean> = {};
-    for (const prompt of prompts) {
+    for (const prompt of allPrompts) {
       allTouched[prompt.id] = true;
     }
     setTouched(allTouched);
 
     // Validate all and check
     if (isAllValid) {
-      // Format values according to output configuration
-      const formattedValues: PromptValues = {};
-      for (const prompt of prompts) {
+      // Format title values according to output configuration
+      const formattedTitleValues: PromptValues = {};
+      for (const prompt of titlePrompts) {
         const rawValue = values[prompt.id] ?? "";
-        formattedValues[prompt.id] = formatValueForOutput(prompt, rawValue);
+        formattedTitleValues[prompt.id] = formatValueForOutput(prompt, rawValue);
       }
-      onSubmit(formattedValues);
+
+      // Format file values according to output configuration
+      const formattedFileValues: PromptValues = {};
+      for (const prompt of filePrompts) {
+        const rawValue = values[prompt.id] ?? "";
+        formattedFileValues[prompt.id] = formatValueForOutput(prompt, rawValue);
+      }
+
+      // Call onSubmit with both value sets
+      if (filePrompts.length > 0) {
+        onSubmit(formattedTitleValues, formattedFileValues);
+      } else {
+        onSubmit(formattedTitleValues);
+      }
     }
-  }, [prompts, values, isAllValid, onSubmit, formatValueForOutput]);
+  }, [allPrompts, titlePrompts, filePrompts, values, isAllValid, onSubmit, formatValueForOutput]);
+
+  // Helper to render a single prompt field
+  const renderPromptField = (prompt: UserPrompt, globalIndex: number) => {
+    const value = values[prompt.id] ?? "";
+    const error = errors[prompt.id];
+    const isTouched = touched[prompt.id];
+    const showError = isTouched && error;
+
+    // Get type label for display
+    const typeLabel = {
+      numeric: "number",
+      date: "date",
+      time: "time",
+      datetime: "date & time",
+    }[prompt.valueType];
+
+    return (
+      <div key={prompt.id} className="file-template-prompt-modal-field">
+        <label
+          className="file-template-prompt-modal-label"
+          htmlFor={`prompt-${prompt.id}`}
+        >
+          {prompt.name}
+          {typeLabel && (
+            <span className="file-template-prompt-item-type">
+              {" "}
+              ({typeLabel})
+            </span>
+          )}
+          {prompt.isOptional && (
+            <span className="file-template-prompt-optional-badge">
+              {" "}
+              (optional)
+            </span>
+          )}
+        </label>
+
+        {/* Render appropriate input based on valueType */}
+        {prompt.valueType === "date" ? (
+          <DatePicker
+            value={value}
+            onChange={(newValue) => handleValueChange(prompt.id, newValue)}
+            autoFocus={globalIndex === 0}
+          />
+        ) : prompt.valueType === "time" ? (
+          <TimePicker
+            value={value}
+            onChange={(newValue) => handleValueChange(prompt.id, newValue)}
+            format={
+              // Show 12h picker if output format is 12h-based
+              prompt.timeConfig?.outputFormat?.includes('A') ? '12h' : '24h'
+            }
+            autoFocus={globalIndex === 0}
+          />
+        ) : prompt.valueType === "datetime" ? (
+          <DateTimePicker
+            value={value}
+            onChange={(newValue) => handleValueChange(prompt.id, newValue)}
+            timeFormat={
+              // Show 12h picker if output format is 12h-based
+              prompt.timeConfig?.outputFormat?.includes('A') ? '12h' : '24h'
+            }
+            autoFocus={globalIndex === 0}
+          />
+        ) : (
+          <input
+            id={`prompt-${prompt.id}`}
+            ref={(el) => { inputRefs.current[globalIndex] = el; }}
+            type="text"
+            inputMode={prompt.valueType === "numeric" ? "numeric" : "text"}
+            className={`file-template-prompt-modal-input ${
+              showError ? "is-error" : ""
+            }`}
+            value={value}
+            onChange={(e) => handleValueChange(prompt.id, e.target.value)}
+            onBlur={() => handleBlur(prompt.id)}
+            onKeyDown={(e) => handleKeyDown(e, globalIndex)}
+            placeholder={
+              prompt.valueType === "numeric"
+                ? "Enter a number..."
+                : "Enter value..."
+            }
+          />
+        )}
+
+        {showError && (
+          <div className="file-template-prompt-modal-error">{error}</div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="file-template-prompt-modal">
-      {/* Title Preview */}
-      <div
-        className={`file-template-prompt-modal-preview ${
-          isAllValid ? "is-complete" : ""
-        }`}
-      >
-        {titlePreview}.md
-      </div>
+      {/* Title Preview - only show if there are title prompts */}
+      {titlePrompts.length > 0 && (
+        <div
+          className={`file-template-prompt-modal-preview ${
+            isAllValid ? "is-complete" : ""
+          }`}
+        >
+          {titlePreview}.md
+        </div>
+      )}
 
       {/* Prompt Fields */}
       <div className="file-template-prompt-modal-fields">
-        {prompts.map((prompt, index) => {
-          const value = values[prompt.id] ?? "";
-          const error = errors[prompt.id];
-          const isTouched = touched[prompt.id];
-          const showError = isTouched && error;
+        {/* Title Prompts Section */}
+        {titlePrompts.length > 0 && (
+          <>
+            {hasBothSections && (
+              <div className="file-template-prompt-section-header">
+                Title Prompts
+              </div>
+            )}
+            {titlePrompts.map((prompt, index) => renderPromptField(prompt, index))}
+          </>
+        )}
 
-          // Get type label for display
-          const typeLabel = {
-            numeric: "number",
-            date: "date",
-            time: "time",
-            datetime: "date & time",
-          }[prompt.valueType];
-
-          return (
-            <div key={prompt.id} className="file-template-prompt-modal-field">
-              <label
-                className="file-template-prompt-modal-label"
-                htmlFor={`prompt-${prompt.id}`}
-              >
-                {prompt.name}
-                {typeLabel && (
-                  <span className="file-template-prompt-item-type">
-                    {" "}
-                    ({typeLabel})
-                  </span>
-                )}
-                {prompt.isOptional && (
-                  <span className="file-template-prompt-optional-badge">
-                    {" "}
-                    (optional)
-                  </span>
-                )}
-              </label>
-
-              {/* Render appropriate input based on valueType */}
-              {prompt.valueType === "date" ? (
-                <DatePicker
-                  value={value}
-                  onChange={(newValue) => handleValueChange(prompt.id, newValue)}
-                  autoFocus={index === 0}
-                />
-              ) : prompt.valueType === "time" ? (
-                <TimePicker
-                  value={value}
-                  onChange={(newValue) => handleValueChange(prompt.id, newValue)}
-                  format={
-                    // Show 12h picker if output format is 12h-based
-                    prompt.timeConfig?.outputFormat?.includes('A') ? '12h' : '24h'
-                  }
-                  autoFocus={index === 0}
-                />
-              ) : prompt.valueType === "datetime" ? (
-                <DateTimePicker
-                  value={value}
-                  onChange={(newValue) => handleValueChange(prompt.id, newValue)}
-                  timeFormat={
-                    // Show 12h picker if output format is 12h-based
-                    prompt.timeConfig?.outputFormat?.includes('A') ? '12h' : '24h'
-                  }
-                  autoFocus={index === 0}
-                />
-              ) : (
-                <input
-                  id={`prompt-${prompt.id}`}
-                  ref={(el) => { inputRefs.current[index] = el; }}
-                  type="text"
-                  inputMode={prompt.valueType === "numeric" ? "numeric" : "text"}
-                  className={`file-template-prompt-modal-input ${
-                    showError ? "is-error" : ""
-                  }`}
-                  value={value}
-                  onChange={(e) => handleValueChange(prompt.id, e.target.value)}
-                  onBlur={() => handleBlur(prompt.id)}
-                  onKeyDown={(e) => handleKeyDown(e, index)}
-                  placeholder={
-                    prompt.valueType === "numeric"
-                      ? "Enter a number..."
-                      : "Enter value..."
-                  }
-                />
-              )}
-
-              {showError && (
-                <div className="file-template-prompt-modal-error">{error}</div>
-              )}
-            </div>
-          );
-        })}
+        {/* File Prompts Section */}
+        {filePrompts.length > 0 && (
+          <>
+            {hasBothSections && (
+              <div className="file-template-prompt-section-header">
+                File Prompts
+              </div>
+            )}
+            {filePrompts.map((prompt, index) =>
+              renderPromptField(prompt, titlePrompts.length + index)
+            )}
+          </>
+        )}
       </div>
 
       {/* Actions */}

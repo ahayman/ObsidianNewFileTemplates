@@ -26,8 +26,6 @@ export interface UserPrompt {
     /** Custom format string when outputFormat is 'custom' */
     customFormat?: string;
   };
-  /** Whether this prompt's type and format are configured via inline syntax */
-  isInlineConfigured?: boolean;
   /** Whether this prompt is optional (empty values allowed) */
   isOptional?: boolean;
 }
@@ -109,8 +107,6 @@ export interface ParsedPromptSyntax {
   timeFormat?: TimeOutputFormat;
   /** Custom format string (when using format(...) syntax) */
   customFormat?: string;
-  /** Whether this prompt was configured inline (in the syntax) */
-  isInlineConfigured?: boolean;
   /** Whether this prompt is optional (empty values allowed) */
   isOptional?: boolean;
 }

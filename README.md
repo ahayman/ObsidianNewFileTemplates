@@ -230,6 +230,49 @@ When you specify a file template, its content is processed with variable substit
 | `{{time}}` | Current time in your configured format |
 | `{{time:FORMAT}}` | Time with custom moment.js format |
 
+### File Prompts
+
+You can also use prompt syntax (`{% %}` and `{%? ?%}`) directly in your file template content. When creating a new file, any prompts found in the file template are displayed in a "File Prompts" section and replaced with the values you enter.
+
+**Example file template with prompts:**
+
+```markdown
+# {% Project Name %}
+
+Author: {% Author %}
+Date: {{date}}
+
+## Summary
+
+{%? Summary ?%}
+
+## Notes
+
+```
+
+When you create a file using this template, you'll be prompted to enter values for "Project Name", "Author", and optionally "Summary". These values are substituted into the file content before any other processing.
+
+**Processing Order:**
+1. Prompts in file content are extracted
+2. User enters values for both title prompts and file prompts
+3. File prompts are substituted with values
+4. File template variables ({{title}}, {{date}}, etc.) are processed
+5. Templater syntax is processed (if enabled)
+6. File is created
+
+**Note:** Prompts inside fenced code blocks (``` or ~~~) are ignored and preserved as-is.
+
+### Enter File Prompts Command
+
+You can also process prompts in existing files using the **"Enter File Prompts"** command:
+
+1. Open a file containing prompt syntax
+2. Run the command from the command palette (`Ctrl/Cmd + P` → "Enter File Prompts")
+3. Enter values for each prompt
+4. The prompts are replaced with your values and the file is saved
+
+If the file contains no prompts (outside of code blocks), a notification will let you know.
+
 ### Templater Integration
 
 If you use the [Templater](https://github.com/SilentVoid13/Templater) plugin, this plugin can automatically process Templater syntax (`<% ... %>`) in your file templates when creating new notes.

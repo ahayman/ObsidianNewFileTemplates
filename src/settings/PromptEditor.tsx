@@ -9,7 +9,7 @@ import { UserPrompt, DateOutputFormat, TimeOutputFormat } from "../types";
 import {
   generatePromptId,
   validatePromptName,
-  createPromptSyntax,
+  createFullPromptSyntax,
 } from "../utils/promptParser";
 import { getCustomFormatExample } from "../utils/dateTimeUtils";
 
@@ -63,7 +63,6 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
   const [error, setError] = useState<string | undefined>();
 
   const isEditing = !!prompt;
-  const isInlineConfigured = prompt?.isInlineConfigured ?? false;
 
   // Determine if we need to show format options
   const showDateFormat = valueType === 'date' || valueType === 'datetime';
@@ -107,6 +106,34 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
     return null;
   }, [valueType, dateOutputFormat, timeOutputFormat, customDateFormat, customTimeFormat]);
 
+  // Build current prompt object for syntax generation
+  const currentPrompt: UserPrompt = useMemo(() => {
+    const p: UserPrompt = {
+      id: prompt?.id ?? '',
+      name: name.trim() || 'Prompt Name',
+      valueType,
+      isOptional,
+    };
+
+    if (valueType === 'date' || valueType === 'datetime') {
+      p.dateConfig = {
+        outputFormat: dateOutputFormat,
+        ...(dateOutputFormat === 'custom' && customDateFormat ? { customFormat: customDateFormat } : {}),
+      };
+    }
+
+    if (valueType === 'time' || valueType === 'datetime') {
+      p.timeConfig = {
+        outputFormat: timeOutputFormat,
+        ...(timeOutputFormat === 'custom' && customTimeFormat ? { customFormat: customTimeFormat } : {}),
+      };
+    }
+
+    return p;
+  }, [prompt, name, valueType, dateOutputFormat, timeOutputFormat, customDateFormat, customTimeFormat, isOptional]);
+
+  const previewSyntax = createFullPromptSyntax(currentPrompt);
+
   const handleSave = useCallback(() => {
     const trimmedName = name.trim();
     const validation = validatePromptName(trimmedName);
@@ -139,29 +166,15 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
       };
     }
 
-    const syntax = createPromptSyntax(trimmedName, isOptional);
+    const syntax = createFullPromptSyntax(savedPrompt);
     onSave(savedPrompt, syntax);
   }, [prompt, name, valueType, dateOutputFormat, timeOutputFormat, customDateFormat, customTimeFormat, isOptional, onSave]);
-
-  const previewSyntax = name.trim()
-    ? createPromptSyntax(name.trim(), isOptional)
-    : isOptional ? "{%? Prompt Name ?%}" : "{% Prompt Name %}";
 
   return (
     <div className="file-template-prompt-editor">
       <div className="file-template-prompt-editor-header">
         {isEditing ? "Edit User Prompt" : "Add User Prompt"}
       </div>
-
-      {/* Inline Configuration Notice */}
-      {isInlineConfigured && (
-        <div className="file-template-editor-field">
-          <div className="file-template-editor-notice">
-            This prompt is configured via inline syntax in the title pattern.
-            To change type or format, edit the syntax directly (e.g., <code>{`{% ${name}:${valueType}:format %}`}</code>).
-          </div>
-        </div>
-      )}
 
       {/* Prompt Name */}
       <div className="file-template-editor-field">
@@ -182,8 +195,7 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
           }}
           placeholder="e.g., Author, Title, Number"
           autoFocus
-          disabled={isInlineConfigured}
-        />
+                  />
         {error && <div className="file-template-editor-error">{error}</div>}
         <div className="file-template-editor-hint">
           This is displayed to the user when they create a new file.
@@ -203,8 +215,7 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
           className="file-template-editor-select"
           value={valueType}
           onChange={(e) => setValueType(e.target.value as "text" | "numeric" | "date" | "time" | "datetime")}
-          disabled={isInlineConfigured}
-        >
+                  >
           <option value="text">Text (any characters)</option>
           <option value="numeric">Numeric (numbers only)</option>
           <option value="date">Date (calendar picker)</option>
@@ -227,8 +238,7 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
             type="checkbox"
             checked={isOptional}
             onChange={(e) => setIsOptional(e.target.checked)}
-            disabled={isInlineConfigured}
-          />
+                      />
           <span className="file-template-toggle-label">Optional Field</span>
         </label>
         <div className="file-template-editor-hint">
@@ -250,8 +260,7 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
             className="file-template-editor-select"
             value={dateOutputFormat}
             onChange={(e) => setDateOutputFormat(e.target.value as DateOutputFormat)}
-            disabled={isInlineConfigured}
-          >
+                      >
             {DATE_FORMAT_OPTIONS.map(opt => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
@@ -282,8 +291,7 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
             value={customDateFormat}
             onChange={(e) => setCustomDateFormat(e.target.value)}
             placeholder="e.g., YYYY-MM-DD, MMM D, YYYY"
-            disabled={isInlineConfigured}
-          />
+                      />
           <div className="file-template-editor-hint">
             Tokens: YYYY (year), MM (month), DD (day), MMM (Jan), MMMM (January).
             You can also include time tokens: HH, mm, h, A.
@@ -305,8 +313,7 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
             className="file-template-editor-select"
             value={timeOutputFormat}
             onChange={(e) => setTimeOutputFormat(e.target.value as TimeOutputFormat)}
-            disabled={isInlineConfigured}
-          >
+                      >
             {TIME_FORMAT_OPTIONS.map(opt => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
@@ -337,8 +344,7 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
             value={customTimeFormat}
             onChange={(e) => setCustomTimeFormat(e.target.value)}
             placeholder="e.g., h:mm A, HH:mm"
-            disabled={isInlineConfigured}
-          />
+                      />
           <div className="file-template-editor-hint">
             Tokens: HH (24h), hh (12h padded), h (12h), mm (minutes), A (AM/PM).
             You can also include date tokens: YYYY, MM, DD.
@@ -365,8 +371,7 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
               setCustomTimeFormat(e.target.value);
             }}
             placeholder="e.g., YYYY-MM-DD h:mm A"
-            disabled={isInlineConfigured}
-          />
+                      />
           <div className="file-template-editor-hint">
             Single format for entire datetime output.
             Tokens: YYYY, MM, DD, HH, hh, h, mm, A.
@@ -415,14 +420,12 @@ interface PromptListItemProps {
   prompt: UserPrompt;
   onEdit: () => void;
   onDelete: () => void;
-  onInsert: () => void;
 }
 
 export function PromptListItem({
   prompt,
   onEdit,
   onDelete,
-  onInsert,
 }: PromptListItemProps) {
   const typeLabels: Record<string, string> = {
     text: "text",
@@ -444,28 +447,15 @@ export function PromptListItem({
             optional
           </span>
         )}
-        {prompt.isInlineConfigured && (
-          <span className="file-template-prompt-item-inline-badge" title="Configured via inline syntax">
-            inline
-          </span>
-        )}
       </div>
       <div className="file-template-prompt-item-actions">
         <button
           type="button"
           className="file-template-prompt-item-btn"
-          onClick={onInsert}
-          title="Insert syntax into title pattern"
-        >
-          Insert
-        </button>
-        <button
-          type="button"
-          className="file-template-prompt-item-btn"
           onClick={onEdit}
-          title={prompt.isInlineConfigured ? "View prompt (read-only)" : "Edit prompt"}
+          title="Edit prompt"
         >
-          {prompt.isInlineConfigured ? "View" : "Edit"}
+          Edit
         </button>
         <button
           type="button"
