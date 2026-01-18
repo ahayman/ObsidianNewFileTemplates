@@ -287,7 +287,11 @@ function variableCompletions(context: CompletionContext): CompletionResult | nul
   };
 }
 
-function getVariableDescription(variable: string): string {
+/**
+ * Get description for a variable name
+ * @internal Exported for testing
+ */
+export function getVariableDescription(variable: string): string {
   switch (variable) {
     case "date": return "Current date";
     case "time": return "Current time";

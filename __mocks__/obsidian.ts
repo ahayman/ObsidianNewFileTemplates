@@ -327,6 +327,136 @@ export class Notice {
   constructor(message: string, timeout?: number) {}
 }
 
+/**
+ * Editor position interface
+ */
+export interface EditorPosition {
+  line: number;
+  ch: number;
+}
+
+/**
+ * Mock Editor class for testing
+ */
+export class Editor {
+  private content: string;
+  private cursor: EditorPosition;
+
+  constructor(content: string = "", cursor?: EditorPosition) {
+    this.content = content;
+    this.cursor = cursor || { line: 0, ch: 0 };
+  }
+
+  getValue(): string {
+    return this.content;
+  }
+
+  setValue(content: string): void {
+    this.content = content;
+  }
+
+  getLine(line: number): string {
+    const lines = this.content.split("\n");
+    return lines[line] || "";
+  }
+
+  getCursor(): EditorPosition {
+    return this.cursor;
+  }
+
+  setCursor(pos: EditorPosition): void {
+    this.cursor = pos;
+  }
+
+  posToOffset(pos: EditorPosition): number {
+    const lines = this.content.split("\n");
+    let offset = 0;
+    for (let i = 0; i < pos.line; i++) {
+      offset += (lines[i]?.length || 0) + 1; // +1 for newline
+    }
+    return offset + pos.ch;
+  }
+
+  replaceRange(text: string, from: EditorPosition, to: EditorPosition): void {
+    const lines = this.content.split("\n");
+    const beforeFrom = lines.slice(0, from.line).join("\n") +
+      (from.line > 0 ? "\n" : "") +
+      lines[from.line].slice(0, from.ch);
+    const afterTo = lines[to.line].slice(to.ch) +
+      (to.line < lines.length - 1 ? "\n" : "") +
+      lines.slice(to.line + 1).join("\n");
+    this.content = beforeFrom + text + afterTo;
+  }
+}
+
+/**
+ * EditorSuggestTriggerInfo interface
+ */
+export interface EditorSuggestTriggerInfo {
+  start: EditorPosition;
+  end: EditorPosition;
+  query: string;
+}
+
+/**
+ * EditorSuggestContext interface
+ */
+export interface EditorSuggestContext {
+  start: EditorPosition;
+  end: EditorPosition;
+  query: string;
+  editor: Editor;
+  file: TFile | null;
+}
+
+/**
+ * Mock EditorSuggest base class for testing
+ */
+export abstract class EditorSuggest<T> {
+  app: App;
+  context: EditorSuggestContext | null = null;
+
+  constructor(app: App) {
+    this.app = app;
+  }
+
+  abstract onTrigger(
+    cursor: EditorPosition,
+    editor: Editor,
+    file: TFile | null
+  ): EditorSuggestTriggerInfo | null;
+
+  abstract getSuggestions(context: EditorSuggestContext): T[];
+
+  abstract renderSuggestion(suggestion: T, el: HTMLElement): void;
+
+  abstract selectSuggestion(
+    suggestion: T,
+    evt: MouseEvent | KeyboardEvent
+  ): void;
+
+  /**
+   * Helper method for testing - sets context and calls getSuggestions
+   */
+  testGetSuggestions(query: string, editor: Editor): T[] {
+    this.context = {
+      start: { line: 0, ch: 0 },
+      end: { line: 0, ch: 0 },
+      query,
+      editor,
+      file: null,
+    };
+    return this.getSuggestions(this.context);
+  }
+
+  /**
+   * Helper method for testing - sets context for selectSuggestion
+   */
+  setTestContext(context: EditorSuggestContext): void {
+    this.context = context;
+  }
+}
+
 export function normalizePath(path: string): string {
   return path.replace(/\\/g, "/").replace(/\/+/g, "/");
 }

@@ -33,8 +33,9 @@ const CODE_BLOCK_PATTERN = /^(`{3,}|~{3,}).*$/gm;
 
 /**
  * Find all code block ranges in the document
+ * @internal Exported for testing
  */
-function findCodeBlockRanges(text: string): Array<{ from: number; to: number }> {
+export function findCodeBlockRanges(text: string): Array<{ from: number; to: number }> {
   const ranges: Array<{ from: number; to: number }> = [];
   const lines = text.split("\n");
   let inCodeBlock = false;
@@ -72,8 +73,9 @@ function findCodeBlockRanges(text: string): Array<{ from: number; to: number }> 
 
 /**
  * Check if a position is inside any code block
+ * @internal Exported for testing
  */
-function isInsideCodeBlock(
+export function isInsideCodeBlock(
   pos: number,
   codeBlockRanges: Array<{ from: number; to: number }>
 ): boolean {
@@ -93,15 +95,20 @@ const PROMPT_PATTERN = /\{%(\??)([^%]+?)(\??)\s*%\}/g;
 
 /**
  * Parse prompt content to identify parts (name, type, format)
+ * @internal Exported for testing
  */
-interface PromptParts {
+export interface PromptParts {
   name: { start: number; end: number };
   type?: { start: number; end: number };
   format?: { start: number; end: number };
   colons: Array<{ pos: number }>;
 }
 
-function parsePromptContent(content: string, contentStart: number): PromptParts {
+/**
+ * Parse prompt content to identify parts (name, type, format)
+ * @internal Exported for testing
+ */
+export function parsePromptContent(content: string, contentStart: number): PromptParts {
   const trimmedContent = content.trim();
   const trimOffset = content.indexOf(trimmedContent);
   const absoluteStart = contentStart + trimOffset;
