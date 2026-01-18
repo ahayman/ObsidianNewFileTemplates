@@ -27,6 +27,7 @@ const DATE_FORMAT_OPTIONS: { value: DateOutputFormat; label: string; example: st
 const TIME_FORMAT_OPTIONS: { value: TimeOutputFormat; label: string; example: string }[] = [
   { value: 'h:mm A', label: '12-hour (h:mm A)', example: '2:30 PM' },
   { value: 'hh:mm A', label: '12-hour padded (hh:mm A)', example: '02:30 PM' },
+  { value: 'HH:mm:ss', label: 'ISO (HH:mm:ss)', example: '14:30:45' },
   { value: 'HH:mm', label: '24-hour (HH:mm)', example: '14:30' },
   { value: 'HHmm', label: '24-hour compact (HHmm)', example: '1430' },
   { value: 'custom', label: 'Custom format...', example: '' },
@@ -89,7 +90,11 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
       const timeExample = timeOutputFormat === 'custom'
         ? (customTimeFormat ? getCustomFormatExample(customTimeFormat) : '')
         : (TIME_FORMAT_OPTIONS.find(o => o.value === timeOutputFormat)?.example || timeOutputFormat);
-      return `${dateExample} ${timeExample}`;
+      // Use 'T' separator when both date and time are ISO formats
+      const isDateISO = dateOutputFormat === 'YYYY-MM-DD';
+      const isTimeISO = timeOutputFormat === 'HH:mm:ss';
+      const separator = isDateISO && isTimeISO ? 'T' : ' ';
+      return `${dateExample}${separator}${timeExample}`;
     }
     return null;
   }, [valueType, dateOutputFormat, timeOutputFormat, customDateFormat, customTimeFormat]);

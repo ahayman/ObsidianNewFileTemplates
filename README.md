@@ -1,10 +1,13 @@
 # New File Templates for Obsidian
 
-Create new notes with templated titles and optional file content templates. Quickly generate consistently named files from the command palette, context menu, or ribbon icon.
+![New File Templates Example Gif](NewFileTemplatesExample.gif)
+
+Create new notes with templated titles and optional file content templates. Quickly generate consistently named files from the command palette, context menu, keyboard shortcut, or ribbon icon. 
 
 ## Features
 
 - **Title Templates**: Define patterns for generating filenames with date/time variables
+- **User Prompts**: Add dynamic input fields (`{% Prompt Name %}`) that are filled in at file creation time
 - **File Templates**: Optionally apply content templates to new files (with variable substitution)
 - **Templater Integration**: Automatically process Templater syntax in your file templates
 - **Obsidian Integration**: Uses your configured date/time formats from Obsidian's core Templates plugin
@@ -60,9 +63,9 @@ The plugin integrates with Obsidian's core Templates plugin. If you have date/ti
 |----------|-------------|----------------|
 | `{{date}}` | Current date | YYYY-MM-DD |
 | `{{date:FORMAT}}` | Date with custom format | Any moment.js format |
-| `{{time}}` | Current time (file-safe) | HH-mm-ss |
+| `{{time}}` | Current time (12-hour) | h:mm:ss A |
 | `{{time:FORMAT}}` | Time with custom format | Any moment.js format |
-| `{{datetime}}` | Combined date and time | YYYY-MM-DD_HH-mm-ss |
+| `{{datetime}}` | Combined date and time | YYYY-MM-DDTHH:mm:ss |
 | `{{timestamp}}` | Unix milliseconds | 1710513045000 |
 | `{{year}}` | Current year | YYYY |
 | `{{month}}` | Current month (zero-padded) | MM |
@@ -90,6 +93,84 @@ When you add `{{counter}}` to your pattern, a "Counter Starts At" field appears 
 - Pattern: `Note {{counter}}` with "Starts At: 100" and no existing files → Creates `Note 100.md`
 
 Note: `{{counter}}` can only be used once per template pattern.
+
+### User Prompts
+
+User prompts let you add dynamic input fields that are filled in when creating a new file. Unlike built-in variables which are auto-generated, prompts ask you for a value at file creation time.
+
+**Syntax:** `{% Prompt Name %}`
+
+**Adding Prompts to Templates:**
+
+1. In the template editor, click "Add Prompt"
+2. Configure the prompt name and value type
+3. Click "Insert" to add the prompt syntax to your title pattern
+
+**Value Types:**
+
+| Type | Description | Input Method |
+|------|-------------|--------------|
+| `Text` | Any text input | Text field |
+| `Numeric` | Numbers only | Number keyboard on mobile |
+| `Date` | Date selection | Calendar picker |
+| `Time` | Time selection | Scrollable wheel picker |
+| `Date & Time` | Both date and time | Calendar + time picker |
+
+**Date Format Options:**
+
+For date and datetime prompts, you can configure the output format:
+
+| Format | Example |
+|--------|---------|
+| YYYY-MM-DD (ISO) | 2024-03-15 |
+| YYYYMMDD (compact) | 20240315 |
+| MM-DD-YYYY (US) | 03-15-2024 |
+| DD-MM-YYYY (European) | 15-03-2024 |
+| MMM DD, YYYY | Mar 15, 2024 |
+| MMMM DD, YYYY | March 15, 2024 |
+| Custom format | Any moment.js format |
+
+**Time Format Options:**
+
+For time and datetime prompts, you can configure the output format:
+
+| Format | Example |
+|--------|---------|
+| h:mm A (12-hour) | 2:30 PM |
+| hh:mm A (12-hour padded) | 02:30 PM |
+| HH:mm:ss (ISO) | 14:30:45 |
+| HH:mm (24-hour) | 14:30 |
+| HHmm (24-hour compact) | 1430 |
+| Custom format | Any moment.js format |
+
+**ISO DateTime Combination:**
+
+When using Date & Time prompts, if both the date format is ISO (YYYY-MM-DD) and the time format is ISO (HH:mm:ss), they will be combined using `T` instead of a space, producing a standard ISO 8601 datetime like `2024-03-15T14:30:45`.
+
+**Example Templates with Prompts:**
+
+**Book Notes:**
+- Pattern: `{% Author %} - {% Title %}`
+- Prompts: Author (text), Title (text)
+- Result: `John Smith - My Book.md`
+
+**Meeting Notes with Date:**
+- Pattern: `{% Meeting Date %} - {% Topic %}`
+- Prompts: Meeting Date (date, YYYY-MM-DD format), Topic (text)
+- Result: `2024-03-15 - Project Review.md`
+
+**Event Log:**
+- Pattern: `{% Event Time %} - {% Event Name %}`
+- Prompts: Event Time (datetime), Event Name (text)
+- Result: `2024-03-15 2:30 PM - Team Standup.md`
+
+**Using the Same Prompt Multiple Times:**
+
+If you use the same prompt name multiple times in a pattern, you only need to enter the value once:
+- Pattern: `{% Author %}/{% Author %}-notes`
+- Prompts: Author (text)
+- User enters: "Jane Doe"
+- Result: `Jane Doe/Jane Doe-notes.md`
 
 ### File Template Variables
 
@@ -126,18 +207,18 @@ Templater has a setting called "Trigger Templater on new file creation". If this
 
 ```markdown
 ---
-created: <% tp.date.now("YYYY-MM-DD HH:mm") %>
-tags: []
+title: <% tp.file.title.split(" ∣ ")[0] %>
+date: <% tp.file.title.split(" ∣ ")[1].replaceAll("⦂", ":") %>
 ---
 
-# {{title}}
+# <% tp.file.title.split(" ∣ ")[0] %>
 
 <% tp.file.cursor() %>
 ```
 
 When you create a new file with this template:
-1. `{{title}}` is replaced with the generated filename (by this plugin)
-2. `<% tp.date.now() %>` and `<% tp.file.cursor() %>` are processed by Templater
+1. The file title is split on the divider, and then the first component is selected as the title.
+2. The date is extracted from the title using the second component, and then "sanitized" back into an ISO format Obsidian understands by replacing the "⦂" symbol with a colon. This is necessary because colons aren't valid in file names, so we used a different symbol.
 
 ### Filename Sanitization
 

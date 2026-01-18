@@ -139,7 +139,8 @@ describe("CounterService", () => {
     });
 
     it("should convert HH:mm:ss format", () => {
-      expect(momentFormatToRegex("HH:mm:ss")).toBe("\\d{2}:\\d{2}:\\d{2}");
+      // Colons are replaced with [:⦂] to match both regular and sanitized filenames
+      expect(momentFormatToRegex("HH:mm:ss")).toBe("\\d{2}[:⦂]\\d{2}[:⦂]\\d{2}");
     });
 
     it("should convert HH-mm-ss format", () => {
@@ -147,7 +148,8 @@ describe("CounterService", () => {
     });
 
     it("should convert 12-hour format with AM/PM", () => {
-      expect(momentFormatToRegex("h:mm A")).toBe("\\d{1,2}:\\d{2} [AP]M");
+      // Colons are replaced with [:⦂] to match both regular and sanitized filenames
+      expect(momentFormatToRegex("h:mm A")).toBe("\\d{1,2}[:⦂]\\d{2} [AP]M");
     });
 
     it("should convert full month names", () => {
@@ -191,16 +193,21 @@ describe("CounterService", () => {
     });
 
     it("should return default time pattern", () => {
-      expect(getVariableRegexPattern("time")).toBe("\\d{2}-\\d{2}-\\d{2}");
+      // 12-hour format with AM/PM: h:mm:ss A
+      // Colons are replaced with [:⦂] to match both regular and sanitized filenames
+      expect(getVariableRegexPattern("time")).toBe("\\d{1,2}[:⦂]\\d{2}[:⦂]\\d{2} [AP]M");
     });
 
     it("should return custom time pattern when format provided", () => {
-      expect(getVariableRegexPattern("time", "HH:mm")).toBe("\\d{2}:\\d{2}");
+      // Colons are replaced with [:⦂] to match both regular and sanitized filenames
+      expect(getVariableRegexPattern("time", "HH:mm")).toBe("\\d{2}[:⦂]\\d{2}");
     });
 
     it("should return datetime pattern", () => {
+      // ISO 8601 format: YYYY-MM-DDTHH:mm:ss
+      // Colons are replaced with [:⦂] to match both regular and sanitized filenames
       expect(getVariableRegexPattern("datetime")).toBe(
-        "\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}"
+        "\\d{4}-\\d{2}-\\d{2}T\\d{2}[:⦂]\\d{2}[:⦂]\\d{2}"
       );
     });
 
@@ -315,8 +322,9 @@ describe("CounterService", () => {
       const pattern = buildMatchingPattern("{{datetime}} - Entry {{counter}}");
       expect(pattern).not.toBeNull();
       // Should correctly extract counter values regardless of datetime format
-      expect(extractCounterFromFilename("2024-01-15_10-30-00 - Entry 5", pattern!)).toBe(5);
-      expect(extractCounterFromFilename("2024-01-15 Thu_10-30-00 - Entry 42", pattern!)).toBe(42);
+      // Note: colons in datetime are sanitized to ⦂ in filenames
+      expect(extractCounterFromFilename("2024-01-15T10⦂30⦂00 - Entry 5", pattern!)).toBe(5);
+      expect(extractCounterFromFilename("2024-01-15T10⦂30⦂00 - Entry 42", pattern!)).toBe(42);
     });
   });
 
@@ -712,8 +720,9 @@ describe("CounterService", () => {
 
     it("should handle datetime followed by counter", () => {
       const pattern = buildMatchingPattern("{{datetime}}-{{counter}}")!;
+      // Note: colons in datetime are sanitized to ⦂ in filenames
       expect(
-        extractCounterFromFilename("2024-01-15_10-30-00-5", pattern)
+        extractCounterFromFilename("2024-01-15T10⦂30⦂00-5", pattern)
       ).toBe(5);
     });
 
@@ -778,7 +787,8 @@ describe("CounterService", () => {
       expect(pattern).not.toBeNull();
 
       // Should match any suffix after the counter
-      expect(extractCounterFromFilename("1 - 2024-01-15_10-30-00", pattern!)).toBe(1);
+      // Note: colons in datetime are sanitized to ⦂ in filenames
+      expect(extractCounterFromFilename("1 - 2024-01-15T10⦂30⦂00", pattern!)).toBe(1);
       expect(extractCounterFromFilename("42 - anything here really", pattern!)).toBe(42);
       expect(extractCounterFromFilename("100 - modified title by user", pattern!)).toBe(100);
     });
@@ -789,7 +799,8 @@ describe("CounterService", () => {
       expect(pattern).not.toBeNull();
 
       // Should match any prefix before the counter
-      expect(extractCounterFromFilename("2024-01-15_10-30-00 - Entry 5", pattern!)).toBe(5);
+      // Note: colons in datetime are sanitized to ⦂ in filenames
+      expect(extractCounterFromFilename("2024-01-15T10⦂30⦂00 - Entry 5", pattern!)).toBe(5);
       expect(extractCounterFromFilename("anything here - Entry 99", pattern!)).toBe(99);
     });
 
@@ -823,10 +834,10 @@ describe("CounterService", () => {
       const pattern = buildMatchingPattern("{{counter}} - {{datetime}}");
       expect(pattern).not.toBeNull();
 
-      // Standard filename
-      expect(extractCounterFromFilename("1 - 2024-01-15_10-30-00", pattern!)).toBe(1);
+      // Standard filename (colons sanitized to ⦂)
+      expect(extractCounterFromFilename("1 - 2024-01-15T10⦂30⦂00", pattern!)).toBe(1);
       // User added extra text
-      expect(extractCounterFromFilename("2 - 2024-01-15_10-30-00 my notes", pattern!)).toBe(2);
+      expect(extractCounterFromFilename("2 - 2024-01-15T10⦂30⦂00 my notes", pattern!)).toBe(2);
       // User changed the datetime format
       expect(extractCounterFromFilename("3 - completely different format", pattern!)).toBe(3);
     });
@@ -837,7 +848,8 @@ describe("CounterService", () => {
       expect(pattern).not.toBeNull();
 
       // This needs full precision matching
-      expect(extractCounterFromFilename("2024-01-15 - 5 - 10-30-00", pattern!)).toBe(5);
+      // Note: time format is h:mm:ss A, colons sanitized to ⦂
+      expect(extractCounterFromFilename("2024-01-15 - 5 - 10⦂30⦂00 AM", pattern!)).toBe(5);
     });
   });
 
@@ -863,9 +875,9 @@ describe("CounterService", () => {
       const pattern = buildMatchingPattern("{{counter}} - {{datetime}}", settings);
       expect(pattern).not.toBeNull();
 
-      // datetime uses dateFormat + "_" + file-safe time (HH-mm-ss)
-      expect(extractCounterFromFilename("1 - 2024-01-15 Mon_10-30-00", pattern!)).toBe(1);
-      expect(extractCounterFromFilename("5 - 2024-01-15 Thu_10-58-42", pattern!)).toBe(5);
+      // datetime uses dateFormat + "T" + HH:mm:ss (colons sanitized to ⦂)
+      expect(extractCounterFromFilename("1 - 2024-01-15 MonT10⦂30⦂00", pattern!)).toBe(1);
+      expect(extractCounterFromFilename("5 - 2024-01-15 ThuT10⦂58⦂42", pattern!)).toBe(5);
     });
 
     it("should handle date format with month name", () => {
@@ -893,6 +905,151 @@ describe("CounterService", () => {
     });
   });
 
+  describe("counter with user prompts", () => {
+    it("should build pattern for counter with prompt after", () => {
+      // Pattern: Chapter {{counter}} - {% Title %}
+      // The prompt should be treated as dynamic content
+      const pattern = buildMatchingPattern("Chapter {{counter}} - {% Title %}");
+      expect(pattern).not.toBeNull();
+
+      // Should match filenames where the prompt has been substituted with any text
+      expect(extractCounterFromFilename("Chapter 1 - My Book", pattern!)).toBe(1);
+      expect(extractCounterFromFilename("Chapter 2 - Another Title", pattern!)).toBe(2);
+      expect(extractCounterFromFilename("Chapter 99 - The Final Chapter", pattern!)).toBe(99);
+    });
+
+    it("should build pattern for counter with prompt before", () => {
+      // Pattern: {% Author %} - Note {{counter}}
+      const pattern = buildMatchingPattern("{% Author %} - Note {{counter}}");
+      expect(pattern).not.toBeNull();
+
+      // Should match filenames where the prompt has been substituted
+      expect(extractCounterFromFilename("John Smith - Note 1", pattern!)).toBe(1);
+      expect(extractCounterFromFilename("Jane Doe - Note 42", pattern!)).toBe(42);
+    });
+
+    it("should build pattern for counter with prompts on both sides", () => {
+      // Pattern: {% Author %} - {{counter}} - {% Title %}
+      const pattern = buildMatchingPattern("{% Author %} - {{counter}} - {% Title %}");
+      expect(pattern).not.toBeNull();
+
+      // Should match filenames with prompts substituted on both sides
+      expect(extractCounterFromFilename("John - 1 - My Book", pattern!)).toBe(1);
+      expect(extractCounterFromFilename("Jane Doe - 99 - Another Title Here", pattern!)).toBe(99);
+    });
+
+    it("should build pattern for counter with mixed variables and prompts", () => {
+      // Pattern: {{date}} - {% Topic %} - Note {{counter}}
+      const pattern = buildMatchingPattern("{{date}} - {% Topic %} - Note {{counter}}");
+      expect(pattern).not.toBeNull();
+
+      // Should match filenames with both variables and prompts substituted
+      expect(extractCounterFromFilename("2024-01-15 - Meeting - Note 5", pattern!)).toBe(5);
+      expect(extractCounterFromFilename("2024-12-31 - Project Review - Note 100", pattern!)).toBe(100);
+    });
+
+    it("should increment counter correctly with prompt in pattern", () => {
+      const app = createMockApp([
+        { name: "Chapter 1 - Introduction", extension: "md" },
+        { name: "Chapter 2 - Getting Started", extension: "md" },
+        { name: "Chapter 3 - Advanced Topics", extension: "md" },
+      ]);
+      const template: TitleTemplate = {
+        id: "test",
+        name: "Book Chapter",
+        titlePattern: "Chapter {{counter}} - {% Title %}",
+        folder: "Notes",
+        counterStartsAt: 1,
+      };
+
+      const nextValue = getNextCounterValue(app, template, "Notes");
+
+      expect(nextValue).toBe(4);
+    });
+
+    it("should return startsAt when no matching files exist with prompt pattern", () => {
+      const app = createMockApp([
+        { name: "Some other file", extension: "md" },
+        { name: "Not a chapter", extension: "md" },
+      ]);
+      const template: TitleTemplate = {
+        id: "test",
+        name: "Book Chapter",
+        titlePattern: "Chapter {{counter}} - {% Title %}",
+        folder: "Notes",
+        counterStartsAt: 1,
+      };
+
+      const nextValue = getNextCounterValue(app, template, "Notes");
+
+      expect(nextValue).toBe(1);
+    });
+
+    it("should handle gaps in sequence with prompt pattern", () => {
+      const app = createMockApp([
+        { name: "Chapter 1 - First", extension: "md" },
+        { name: "Chapter 5 - Fifth", extension: "md" },
+        { name: "Chapter 10 - Tenth", extension: "md" },
+      ]);
+      const template: TitleTemplate = {
+        id: "test",
+        name: "Book Chapter",
+        titlePattern: "Chapter {{counter}} - {% Title %}",
+        folder: "Notes",
+        counterStartsAt: 1,
+      };
+
+      const nextValue = getNextCounterValue(app, template, "Notes");
+
+      // Should return 11 (max 10 + 1), not fill gaps
+      expect(nextValue).toBe(11);
+    });
+
+    it("should handle prompt with spaces in name", () => {
+      const pattern = buildMatchingPattern("{% Book Title %} - Chapter {{counter}}");
+      expect(pattern).not.toBeNull();
+
+      expect(extractCounterFromFilename("My Great Book - Chapter 1", pattern!)).toBe(1);
+      expect(extractCounterFromFilename("Another Book Title - Chapter 50", pattern!)).toBe(50);
+    });
+
+    it("should handle multiple prompts with counter", () => {
+      // Pattern with two different prompts
+      const pattern = buildMatchingPattern("{% Author %} - {% Series %} {{counter}}");
+      expect(pattern).not.toBeNull();
+
+      expect(extractCounterFromFilename("John Smith - Fantasy 1", pattern!)).toBe(1);
+      expect(extractCounterFromFilename("Jane Doe - Sci-Fi Adventures 42", pattern!)).toBe(42);
+    });
+
+    it("should handle prompt at very end of pattern", () => {
+      const pattern = buildMatchingPattern("Note {{counter}} by {% Author %}");
+      expect(pattern).not.toBeNull();
+
+      expect(extractCounterFromFilename("Note 1 by John", pattern!)).toBe(1);
+      expect(extractCounterFromFilename("Note 999 by Jane Smith", pattern!)).toBe(999);
+    });
+
+    it("should increment with date variable and prompt", () => {
+      const app = createMockApp([
+        { name: "2024-01-15 - Meeting Notes 1", extension: "md" },
+        { name: "2024-01-16 - Project Review 2", extension: "md" },
+        { name: "2024-01-17 - Team Standup 3", extension: "md" },
+      ]);
+      const template: TitleTemplate = {
+        id: "test",
+        name: "Meeting",
+        titlePattern: "{{date}} - {% Topic %} {{counter}}",
+        folder: "Notes",
+        counterStartsAt: 1,
+      };
+
+      const nextValue = getNextCounterValue(app, template, "Notes");
+
+      expect(nextValue).toBe(4);
+    });
+  });
+
   describe("filename sanitization handling", () => {
     it("should handle pipe character (| → ∣) in template", () => {
       // Template uses regular pipe |, but filenames are sanitized to use ∣ (divides symbol)
@@ -900,9 +1057,10 @@ describe("CounterService", () => {
       expect(pattern).not.toBeNull();
 
       // The pattern should match filenames with the sanitized divides symbol
-      expect(extractCounterFromFilename("1 ∣ 2024-01-15_10-30-00", pattern!)).toBe(1);
-      expect(extractCounterFromFilename("42 ∣ 2024-01-15_10-30-00", pattern!)).toBe(42);
-      expect(extractCounterFromFilename("100 ∣ 2024-12-31_23-59-59", pattern!)).toBe(100);
+      // Note: colons in datetime are also sanitized to ⦂
+      expect(extractCounterFromFilename("1 ∣ 2024-01-15T10⦂30⦂00", pattern!)).toBe(1);
+      expect(extractCounterFromFilename("42 ∣ 2024-01-15T10⦂30⦂00", pattern!)).toBe(42);
+      expect(extractCounterFromFilename("100 ∣ 2024-12-31T23⦂59⦂59", pattern!)).toBe(100);
     });
 
     it("should handle colon character (: → ⦂) in template", () => {
@@ -938,9 +1096,9 @@ describe("CounterService", () => {
 
     it("should correctly increment with sanitized characters", () => {
       const app = createMockApp([
-        { name: "1 ∣ 2024-01-15_10-30-00", extension: "md" },
-        { name: "2 ∣ 2024-01-15_10-31-00", extension: "md" },
-        { name: "3 ∣ 2024-01-15_10-32-00", extension: "md" },
+        { name: "1 ∣ 2024-01-15T10⦂30⦂00", extension: "md" },
+        { name: "2 ∣ 2024-01-15T10⦂31⦂00", extension: "md" },
+        { name: "3 ∣ 2024-01-15T10⦂32⦂00", extension: "md" },
       ]);
       const template: TitleTemplate = {
         id: "test",

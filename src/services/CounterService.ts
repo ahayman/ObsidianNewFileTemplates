@@ -138,6 +138,12 @@ export function momentFormatToRegex(format: string): string {
     result = result.split(escapedPlaceholder).join(pattern);
   }
 
+  // Handle sanitized characters in filenames
+  // Colons (:) are sanitized to ⦂ (U+2982) - match either
+  result = result.split(":").join("[:⦂]");
+  // Pipes (|) are sanitized to ∣ (U+2223) - match either
+  result = result.split("\\|").join("[|∣]");
+
   return result;
 }
 
@@ -158,7 +164,7 @@ export function getVariableRegexPattern(
 
   // Get the date format from settings or use default
   const dateFormat = settings?.dateFormat || DEFAULT_DATE_FORMAT;
-  // Time format for filenames is always file-safe (HH-mm-ss)
+  // Time format is 12-hour with AM/PM (h:mm:ss A)
   const timeFormat = DEFAULT_FILENAME_TIME_FORMAT;
 
   switch (lowerName) {
@@ -177,13 +183,13 @@ export function getVariableRegexPattern(
       if (format) {
         return momentFormatToRegex(format);
       }
-      // File-safe format: HH-mm-ss
+      // 12-hour format with AM/PM: h:mm:ss A
       return momentFormatToRegex(timeFormat);
 
     case "datetime":
-      // Combined: {dateFormat}_{timeFormat}
-      // Use user's date format + underscore + file-safe time format
-      return momentFormatToRegex(dateFormat) + "_" + momentFormatToRegex(timeFormat);
+      // Combined: {dateFormat}T{HH:mm:ss} (ISO 8601 format)
+      // Use user's date format + T + HH:mm:ss time format
+      return momentFormatToRegex(dateFormat) + "T" + momentFormatToRegex("HH:mm:ss");
 
     case "timestamp":
       // Unix timestamp (10-13 digits for seconds/milliseconds)
@@ -209,6 +215,20 @@ export function getVariableRegexPattern(
  */
 function containsVariables(str: string): boolean {
   return /\{\{\w+(?::[^}]+)?\}\}/i.test(str);
+}
+
+/**
+ * Checks if a string contains any user prompts
+ */
+function containsPrompts(str: string): boolean {
+  return /\{%\s*.+?\s*%\}/.test(str);
+}
+
+/**
+ * Checks if a string contains any dynamic content (variables or prompts)
+ */
+function containsDynamicContent(str: string): boolean {
+  return containsVariables(str) || containsPrompts(str);
 }
 
 /**
@@ -251,9 +271,9 @@ export function buildMatchingPattern(
   const beforeCounter = titlePattern.slice(0, counterStart);
   const afterCounter = titlePattern.slice(counterEnd);
 
-  // Check if before/after contain variables
-  const hasVariablesBefore = containsVariables(beforeCounter);
-  const hasVariablesAfter = containsVariables(afterCounter);
+  // Check if before/after contain dynamic content (variables or prompts)
+  const hasDynamicBefore = containsDynamicContent(beforeCounter);
+  const hasDynamicAfter = containsDynamicContent(afterCounter);
 
   // Sanitize static text portions
   const sanitizedBefore = sanitizeForPattern(beforeCounter);
@@ -262,23 +282,23 @@ export function buildMatchingPattern(
   // Build pattern based on what's around the counter
   let regexPattern: string;
 
-  if (!hasVariablesBefore && !hasVariablesAfter) {
+  if (!hasDynamicBefore && !hasDynamicAfter) {
     // Case 1: Static text on both sides (or no text)
     // Pattern: ^{before}(\d+){after}$
     regexPattern = `^${escapeRegex(sanitizedBefore)}(\\d+)${escapeRegex(sanitizedAfter)}$`;
-  } else if (!hasVariablesBefore && hasVariablesAfter) {
-    // Case 2: Static text before, variables after
+  } else if (!hasDynamicBefore && hasDynamicAfter) {
+    // Case 2: Static text before, dynamic content after (variables or prompts)
     // Pattern: ^{before}(\d+).*$
     // We only need to match the static prefix and capture the counter
     regexPattern = `^${escapeRegex(sanitizedBefore)}(\\d+).*$`;
-  } else if (hasVariablesBefore && !hasVariablesAfter) {
-    // Case 3: Variables before, static text after
+  } else if (hasDynamicBefore && !hasDynamicAfter) {
+    // Case 3: Dynamic content before, static text after
     // Pattern: ^.*?(\d+){after}$
     // Use non-greedy match before, then capture counter and match static suffix
     regexPattern = `^.*?(\\d+)${escapeRegex(sanitizedAfter)}$`;
   } else {
-    // Case 4: Variables on both sides - need full precision
-    // Build the complete pattern with all variables converted to regex
+    // Case 4: Dynamic content on both sides - need full precision
+    // Build the complete pattern with all variables/prompts converted to regex
     regexPattern = buildFullMatchingPattern(titlePattern, settings);
   }
 
@@ -286,40 +306,90 @@ export function buildMatchingPattern(
 }
 
 /**
- * Builds a full matching pattern when variables exist on both sides of counter.
+ * Represents a dynamic element (variable or prompt) found in a pattern
+ */
+interface DynamicElement {
+  type: "variable" | "prompt";
+  fullMatch: string;
+  index: number;
+  varName?: string;
+  format?: string;
+}
+
+/**
+ * Finds all dynamic elements (variables and prompts) in a pattern
+ */
+function findDynamicElements(pattern: string): DynamicElement[] {
+  const elements: DynamicElement[] = [];
+
+  // Find all variables: {{varName}} or {{varName:format}}
+  const variableRegex = /\{\{(\w+)(?::([^}]+))?\}\}/g;
+  let match;
+  while ((match = variableRegex.exec(pattern)) !== null) {
+    elements.push({
+      type: "variable",
+      fullMatch: match[0],
+      index: match.index,
+      varName: match[1],
+      format: match[2],
+    });
+  }
+
+  // Find all prompts: {% Prompt Name %}
+  const promptRegex = /\{%\s*.+?\s*%\}/g;
+  while ((match = promptRegex.exec(pattern)) !== null) {
+    elements.push({
+      type: "prompt",
+      fullMatch: match[0],
+      index: match.index,
+    });
+  }
+
+  // Sort by position in the pattern
+  elements.sort((a, b) => a.index - b.index);
+
+  return elements;
+}
+
+/**
+ * Builds a full matching pattern when dynamic content exists on both sides of counter.
  * This is the fallback for complex patterns where we need precision.
+ * Handles both {{variables}} and {% prompts %}.
  */
 function buildFullMatchingPattern(
   titlePattern: string,
   settings?: TemplatesSettings
 ): string {
-  const variableRegex = /\{\{(\w+)(?::([^}]+))?\}\}/g;
+  const elements = findDynamicElements(titlePattern);
 
   let regexPattern = "";
   let lastIndex = 0;
 
-  let match;
-  while ((match = variableRegex.exec(titlePattern)) !== null) {
-    // Add escaped literal text before this variable
-    const literalText = titlePattern.slice(lastIndex, match.index);
+  for (const element of elements) {
+    // Add escaped literal text before this element
+    const literalText = titlePattern.slice(lastIndex, element.index);
     const sanitizedLiteral = sanitizeForPattern(literalText);
     regexPattern += escapeRegex(sanitizedLiteral);
 
-    const [fullMatch, varName, format] = match;
-    const lowerName = varName.toLowerCase();
+    if (element.type === "variable" && element.varName) {
+      const lowerName = element.varName.toLowerCase();
 
-    // Get the regex pattern for this variable
-    const varPattern = getVariableRegexPattern(varName, format, settings);
+      // Get the regex pattern for this variable
+      const varPattern = getVariableRegexPattern(element.varName, element.format, settings);
 
-    if (lowerName === "counter") {
-      // Counter becomes a capturing group
-      regexPattern += `(${varPattern})`;
-    } else {
-      // Other variables are non-capturing
-      regexPattern += varPattern;
+      if (lowerName === "counter") {
+        // Counter becomes a capturing group
+        regexPattern += `(${varPattern})`;
+      } else {
+        // Other variables are non-capturing
+        regexPattern += varPattern;
+      }
+    } else if (element.type === "prompt") {
+      // Prompts match any characters (non-greedy)
+      regexPattern += ".*?";
     }
 
-    lastIndex = match.index + fullMatch.length;
+    lastIndex = element.index + element.fullMatch.length;
   }
 
   // Add any remaining literal text (sanitized)

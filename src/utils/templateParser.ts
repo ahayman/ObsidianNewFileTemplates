@@ -4,8 +4,8 @@
  * Parses title patterns and substitutes template variables with actual values.
  * Supported variables:
  * - {{date}}      - Current date (YYYY-MM-DD)
- * - {{time}}      - Current time (HH-mm-ss, file-safe format)
- * - {{datetime}}  - Combined date and time (YYYY-MM-DD_HH-mm-ss)
+ * - {{time}}      - Current time (h:mm:ss A, 12-hour format)
+ * - {{datetime}}  - Combined date and time (YYYY-MM-DDTHH:mm:ss, ISO 8601)
  * - {{timestamp}} - Unix timestamp in milliseconds
  * - {{year}}      - Current year (YYYY)
  * - {{month}}     - Current month (MM, zero-padded)
@@ -37,12 +37,17 @@ export function getTemplateVariables(date: Date = new Date()): Record<string, st
   const seconds = padZero(date.getSeconds());
 
   const dateStr = `${year}-${month}-${day}`;
-  const timeStr = `${hours}-${minutes}-${seconds}`;
+
+  // 12-hour time format with AM/PM
+  const hour24 = date.getHours();
+  const hour12 = hour24 % 12 || 12;
+  const ampm = hour24 < 12 ? "AM" : "PM";
+  const timeStr = `${hour12}:${minutes}:${seconds} ${ampm}`;
 
   return {
     date: dateStr,
     time: timeStr,
-    datetime: `${dateStr}_${timeStr}`,
+    datetime: `${dateStr}T${hours}:${minutes}:${seconds}`,
     timestamp: String(date.getTime()),
     year: String(year),
     month: month,

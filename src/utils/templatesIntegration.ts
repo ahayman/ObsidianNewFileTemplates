@@ -138,9 +138,9 @@ export function processTemplateContent(
 }
 
 /**
- * Default file-safe time format (uses hyphens instead of colons)
+ * Default time format (12-hour with AM/PM)
  */
-export const DEFAULT_FILENAME_TIME_FORMAT = "HH-mm-ss";
+export const DEFAULT_FILENAME_TIME_FORMAT = "h:mm:ss A";
 
 /**
  * Parses a title template pattern using moment.js and user's Templates settings.
@@ -148,7 +148,7 @@ export const DEFAULT_FILENAME_TIME_FORMAT = "HH-mm-ss";
  * Supported variables:
  * - {{date}} - Current date in user's configured format
  * - {{date:FORMAT}} - Current date with custom moment.js format
- * - {{time}} - Current time in file-safe format (HH-mm-ss)
+ * - {{time}} - Current time in 12-hour format (h:mm:ss A)
  * - {{time:FORMAT}} - Current time with custom moment.js format
  * - {{datetime}} - Combined date and time
  * - {{timestamp}} - Unix timestamp in milliseconds
@@ -189,11 +189,11 @@ export function parseTitleTemplate(
     return "#";
   });
 
-  // Process {{datetime}} - combined date and time (file-safe)
+  // Process {{datetime}} - combined date and time (ISO 8601 format)
   result = result.replace(/\{\{datetime\}\}/gi, () => {
     const dateStr = now.format(settings.dateFormat);
-    const timeStr = now.format(DEFAULT_FILENAME_TIME_FORMAT);
-    return `${dateStr}_${timeStr}`;
+    const timeStr = now.format("HH:mm:ss");
+    return `${dateStr}T${timeStr}`;
   });
 
   // Process {{timestamp}} - Unix timestamp
@@ -211,7 +211,7 @@ export function parseTitleTemplate(
   );
 
   // Process {{time}} and {{time:FORMAT}}
-  // Default time format for filenames uses hyphens (file-safe)
+  // Default time format is 12-hour with AM/PM
   result = result.replace(
     /\{\{time(?::([^}]+))?\}\}/gi,
     (_, customFormat) => {

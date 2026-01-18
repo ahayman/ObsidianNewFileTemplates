@@ -45,6 +45,7 @@ export type DateOutputFormat =
  * Note: Colons are automatically converted to ⦂ (two dot punctuation) when saving
  */
 export type TimeOutputFormat =
+  | 'HH:mm:ss'        // 14:30:45 (ISO, 24h with seconds)
   | 'HH:mm'           // 14:30 (24h)
   | 'HHmm'            // 1430 (24h compact)
   | 'h:mm A'          // 2:30 PM (12h, default)

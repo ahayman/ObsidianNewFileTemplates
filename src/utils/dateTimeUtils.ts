@@ -49,17 +49,20 @@ export function formatDateOutput(date: Date, format: DateOutputFormat = 'YYYY-MM
 }
 
 /**
- * Formats time (hours/minutes) to a string for filename output
+ * Formats time (hours/minutes/seconds) to a string for filename output
  * Uses colons which are sanitized to ⦂ (two dot punctuation) when saving
  */
-export function formatTimeOutput(hours: number, minutes: number, format: TimeOutputFormat = 'h:mm A'): string {
+export function formatTimeOutput(hours: number, minutes: number, format: TimeOutputFormat = 'h:mm A', seconds: number = 0): string {
   const paddedMinutes = String(minutes).padStart(2, '0');
+  const paddedSeconds = String(seconds).padStart(2, '0');
   const hours24 = String(hours).padStart(2, '0');
   const hours12 = hours % 12 || 12;
   const hours12Padded = String(hours12).padStart(2, '0');
   const ampm = hours < 12 ? 'AM' : 'PM';
 
   switch (format) {
+    case 'HH:mm:ss':
+      return `${hours24}:${paddedMinutes}:${paddedSeconds}`;
     case 'HH:mm':
       return `${hours24}:${paddedMinutes}`;
     case 'HHmm':
@@ -75,6 +78,7 @@ export function formatTimeOutput(hours: number, minutes: number, format: TimeOut
 
 /**
  * Formats a datetime for filename output
+ * Uses 'T' separator when both date and time are ISO formats (YYYY-MM-DD and HH:mm:ss)
  */
 export function formatDateTimeOutput(
   date: Date,
@@ -82,8 +86,12 @@ export function formatDateTimeOutput(
   timeFormat: TimeOutputFormat = 'h:mm A'
 ): string {
   const dateStr = formatDateOutput(date, dateFormat);
-  const timeStr = formatTimeOutput(date.getHours(), date.getMinutes(), timeFormat);
-  return `${dateStr} ${timeStr}`;
+  const timeStr = formatTimeOutput(date.getHours(), date.getMinutes(), timeFormat, date.getSeconds());
+  // Use 'T' separator when both date and time are ISO formats
+  const isDateISO = dateFormat === 'YYYY-MM-DD';
+  const isTimeISO = timeFormat === 'HH:mm:ss';
+  const separator = isDateISO && isTimeISO ? 'T' : ' ';
+  return `${dateStr}${separator}${timeStr}`;
 }
 
 // ============================================

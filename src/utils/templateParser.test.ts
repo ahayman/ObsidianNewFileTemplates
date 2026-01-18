@@ -18,12 +18,14 @@ describe("templateParser", () => {
       const vars = getTemplateVariables(fixedDate);
 
       // Note: getHours returns local time, so we need to account for timezone
-      const localHours = fixedDate.getHours().toString().padStart(2, "0");
+      const hour24 = fixedDate.getHours();
+      const hour12 = hour24 % 12 || 12;
+      const ampm = hour24 < 12 ? "AM" : "PM";
       const localMinutes = fixedDate.getMinutes().toString().padStart(2, "0");
       const localSeconds = fixedDate.getSeconds().toString().padStart(2, "0");
 
       expect(vars.date).toBe("2024-03-15");
-      expect(vars.time).toBe(`${localHours}-${localMinutes}-${localSeconds}`);
+      expect(vars.time).toBe(`${hour12}:${localMinutes}:${localSeconds} ${ampm}`);
       expect(vars.year).toBe("2024");
       expect(vars.month).toBe("03");
       expect(vars.day).toBe("15");
@@ -102,14 +104,14 @@ describe("templateParser", () => {
 
     it("should handle datetime variable", () => {
       const result = parseTemplate("{{datetime}}", fixedDate);
-      // datetime format: YYYY-MM-DD_HH-mm-ss
-      expect(result).toMatch(/^2024-03-15_\d{2}-\d{2}-\d{2}$/);
+      // datetime format: YYYY-MM-DDTHH:mm:ss (ISO 8601)
+      expect(result).toMatch(/^2024-03-15T\d{2}:\d{2}:\d{2}$/);
     });
 
     it("should handle time variable", () => {
       const result = parseTemplate("{{time}}", fixedDate);
-      // time format: HH-mm-ss
-      expect(result).toMatch(/^\d{2}-\d{2}-\d{2}$/);
+      // time format: h:mm:ss A (12-hour with AM/PM)
+      expect(result).toMatch(/^\d{1,2}:\d{2}:\d{2} [AP]M$/);
     });
 
     it("should use current date when no date provided", () => {
@@ -237,7 +239,8 @@ describe("templateParser", () => {
     it("should handle colon with replacement character", () => {
       const result = parseTemplateToFilename("  {{date}}:{{time}}  ", fixedDate);
       // Colon replaced with ⦂, whitespace trimmed
-      expect(result).toMatch(/^2024-03-15⦂\d{2}-\d{2}-\d{2}$/);
+      // Time format is h:mm:ss A, so colons in time also become ⦂
+      expect(result).toMatch(/^2024-03-15⦂\d{1,2}⦂\d{2}⦂\d{2} [AP]M$/);
     });
 
     it("should handle pipe with replacement character", () => {
