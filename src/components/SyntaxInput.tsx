@@ -24,6 +24,7 @@ import {
   DATE_FORMAT_PRESETS,
   TIME_FORMAT_PRESETS,
 } from "../types";
+import { parseFormatString, MOMENT_TOKENS, getTokenExample } from "../utils/momentTokens";
 
 interface SyntaxInputProps {
   /** Current value */
@@ -54,6 +55,9 @@ const promptNameDecoration = Decoration.mark({ class: "cm-prompt-name" });
 const promptColonDecoration = Decoration.mark({ class: "cm-prompt-colon" });
 const promptTypeDecoration = Decoration.mark({ class: "cm-prompt-type" });
 const promptFormatDecoration = Decoration.mark({ class: "cm-prompt-format" });
+const formatWrapperDecoration = Decoration.mark({ class: "cm-format-wrapper" });
+const formatTokenDecoration = Decoration.mark({ class: "cm-format-token" });
+const formatLiteralDecoration = Decoration.mark({ class: "cm-format-literal" });
 
 /**
  * Build decorations for variable syntax: {{variable}}
@@ -229,21 +233,65 @@ function createHighlighter(enableVariables: boolean, enablePrompts: boolean) {
               pos += 1;
             }
 
-            // Simplified content parsing for combined view
+            // Check for custom format syntax: Name:type:format(...)
             const trimmedContent = content.trim();
             const contentStart = start + 2 + (openOptional === "?" ? 1 : 0) + (content.indexOf(trimmedContent));
-            const parts = trimmedContent.split(":");
-            let partPos = contentStart;
+            const customFormatMatch = trimmedContent.match(/^([^:]+):(\w+):format\((.+)\)$/);
 
-            decorations.push({ from: partPos, to: partPos + parts[0].length, decoration: promptNameDecoration });
-            partPos += parts[0].length;
+            if (customFormatMatch) {
+              // Handle format(...) syntax with token highlighting
+              const [, name, type, formatContent] = customFormatMatch;
+              let partPos = contentStart;
 
-            for (let i = 1; i < parts.length; i++) {
+              // Name
+              decorations.push({ from: partPos, to: partPos + name.length, decoration: promptNameDecoration });
+              partPos += name.length;
+
+              // First colon
               decorations.push({ from: partPos, to: partPos + 1, decoration: promptColonDecoration });
               partPos += 1;
-              const dec = i === 1 ? promptTypeDecoration : promptFormatDecoration;
-              decorations.push({ from: partPos, to: partPos + parts[i].length, decoration: dec });
-              partPos += parts[i].length;
+
+              // Type
+              decorations.push({ from: partPos, to: partPos + type.length, decoration: promptTypeDecoration });
+              partPos += type.length;
+
+              // Second colon
+              decorations.push({ from: partPos, to: partPos + 1, decoration: promptColonDecoration });
+              partPos += 1;
+
+              // format( wrapper
+              const formatFuncStart = partPos;
+              decorations.push({ from: formatFuncStart, to: formatFuncStart + 7, decoration: formatWrapperDecoration });
+              partPos += 7; // "format("
+
+              // Parse and highlight format tokens
+              const formatParts = parseFormatString(formatContent);
+              for (const part of formatParts) {
+                decorations.push({
+                  from: partPos + part.start,
+                  to: partPos + part.end,
+                  decoration: part.type === 'token' ? formatTokenDecoration : formatLiteralDecoration,
+                });
+              }
+
+              // Closing paren )
+              const closingParenPos = formatFuncStart + 7 + formatContent.length;
+              decorations.push({ from: closingParenPos, to: closingParenPos + 1, decoration: formatWrapperDecoration });
+            } else {
+              // Standard parsing: Name:type:format
+              const parts = trimmedContent.split(":");
+              let partPos = contentStart;
+
+              decorations.push({ from: partPos, to: partPos + parts[0].length, decoration: promptNameDecoration });
+              partPos += parts[0].length;
+
+              for (let i = 1; i < parts.length; i++) {
+                decorations.push({ from: partPos, to: partPos + 1, decoration: promptColonDecoration });
+                partPos += 1;
+                const dec = i === 1 ? promptTypeDecoration : promptFormatDecoration;
+                decorations.push({ from: partPos, to: partPos + parts[i].length, decoration: dec });
+                partPos += parts[i].length;
+              }
             }
 
             const closeStart = start + fullMatch.length - 2 - (closeOptional === "?" ? 1 : 0);
@@ -390,6 +438,56 @@ function promptCompletions(context: CompletionContext): CompletionResult | null 
     return {
       from: context.pos - query.length,
       options,
+    };
+  }
+
+  // Check for format token completion inside format(...)
+  const formatTokenMatch = text.match(/\{%\??\s*[^:%]+:(date|time|datetime):format\(([^)]*)$/i);
+  if (formatTokenMatch) {
+    const formatContent = formatTokenMatch[2] || "";
+    const valueType = formatTokenMatch[1].toLowerCase();
+    // Get the last partial token being typed (letters only, after any non-letter)
+    const lastTokenMatch = formatContent.match(/([A-Za-z]*)$/);
+    const query = lastTokenMatch ? lastTokenMatch[1].toLowerCase() : "";
+
+    // Sort tokens based on value type
+    let sortedTokens = [...MOMENT_TOKENS];
+    if (valueType === "date") {
+      sortedTokens.sort((a, b) => {
+        const dateCategories = ["year", "month", "day"];
+        const aIsDate = dateCategories.includes(a.category);
+        const bIsDate = dateCategories.includes(b.category);
+        if (aIsDate && !bIsDate) return -1;
+        if (!aIsDate && bIsDate) return 1;
+        return 0;
+      });
+    } else if (valueType === "time") {
+      sortedTokens.sort((a, b) => {
+        const timeCategories = ["hour", "minute", "second", "ampm"];
+        const aIsTime = timeCategories.includes(a.category);
+        const bIsTime = timeCategories.includes(b.category);
+        if (aIsTime && !bIsTime) return -1;
+        if (!aIsTime && bIsTime) return 1;
+        return 0;
+      });
+    }
+
+    // Filter tokens by query
+    const filteredTokens = query
+      ? sortedTokens.filter(
+          (t) =>
+            t.token.toLowerCase().startsWith(query) ||
+            t.description.toLowerCase().includes(query)
+        )
+      : sortedTokens;
+
+    return {
+      from: context.pos - query.length,
+      options: filteredTokens.map((token) => ({
+        label: token.token,
+        type: "keyword",
+        detail: `${token.description} (${getTokenExample(token)})`,
+      })),
     };
   }
 

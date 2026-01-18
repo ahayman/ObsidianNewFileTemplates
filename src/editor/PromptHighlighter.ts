@@ -14,6 +14,7 @@ import {
   WidgetType,
 } from "@codemirror/view";
 import { RangeSetBuilder } from "@codemirror/state";
+import { parseFormatString } from "../utils/momentTokens";
 
 /**
  * Decoration styles for different parts of prompt syntax
@@ -24,6 +25,9 @@ const nameDecoration = Decoration.mark({ class: "cm-prompt-name" });
 const colonDecoration = Decoration.mark({ class: "cm-prompt-colon" });
 const typeDecoration = Decoration.mark({ class: "cm-prompt-type" });
 const formatDecoration = Decoration.mark({ class: "cm-prompt-format" });
+const formatWrapperDecoration = Decoration.mark({ class: "cm-format-wrapper" });
+const formatTokenDecoration = Decoration.mark({ class: "cm-format-token" });
+const formatLiteralDecoration = Decoration.mark({ class: "cm-format-literal" });
 
 /**
  * Pattern to match fenced code blocks
@@ -94,6 +98,15 @@ export function isInsideCodeBlock(
 const PROMPT_PATTERN = /\{%(\??)([^%]+?)(\??)\s*%\}/g;
 
 /**
+ * Represents a parsed format token position
+ */
+export interface FormatTokenPos {
+  start: number;
+  end: number;
+  isToken: boolean;
+}
+
+/**
  * Parse prompt content to identify parts (name, type, format)
  * @internal Exported for testing
  */
@@ -102,6 +115,10 @@ export interface PromptParts {
   type?: { start: number; end: number };
   format?: { start: number; end: number };
   colons: Array<{ pos: number }>;
+  /** If format is custom format(...), contains parsed token positions */
+  formatTokens?: FormatTokenPos[];
+  /** Positions for format( and ) wrapper */
+  formatWrapper?: { funcStart: number; funcEnd: number; parenClose: number };
 }
 
 /**
@@ -122,7 +139,7 @@ export function parsePromptContent(content: string, contentStart: number): Promp
   // Check for custom format syntax first: format(...)
   const customFormatMatch = trimmedContent.match(/^([^:]+):(\w+):format\((.+)\)$/);
   if (customFormatMatch) {
-    const [, name, type, format] = customFormatMatch;
+    const [, name, type, formatContent] = customFormatMatch;
     parts.name = {
       start: absoluteStart,
       end: absoluteStart + name.length,
@@ -133,10 +150,33 @@ export function parsePromptContent(content: string, contentStart: number): Promp
       end: absoluteStart + name.length + 1 + type.length,
     };
     colons.push({ pos: absoluteStart + name.length + 1 + type.length });
+
+    // Calculate format wrapper positions
+    const formatStart = absoluteStart + name.length + 1 + type.length + 1;
+    const formatFuncEnd = formatStart + 7; // "format("
+    const formatParenClose = absoluteStart + trimmedContent.length - 1; // ")"
+
     parts.format = {
-      start: absoluteStart + name.length + 1 + type.length + 1,
+      start: formatStart,
       end: absoluteStart + trimmedContent.length,
     };
+
+    parts.formatWrapper = {
+      funcStart: formatStart,
+      funcEnd: formatFuncEnd,
+      parenClose: formatParenClose,
+    };
+
+    // Parse the format string content for tokens
+    const formatParts = parseFormatString(formatContent);
+    const formatContentStart = formatFuncEnd; // After "format("
+
+    parts.formatTokens = formatParts.map(part => ({
+      start: formatContentStart + part.start,
+      end: formatContentStart + part.end,
+      isToken: part.type === 'token',
+    }));
+
     return parts;
   }
 
@@ -256,7 +296,34 @@ function buildDecorations(view: EditorView): DecorationSet {
 
       // Add format decoration
       if (parts.format) {
-        decorations.push({ from: parts.format.start, to: parts.format.end, decoration: formatDecoration });
+        // Check if we have format(...) with parsed tokens
+        if (parts.formatWrapper && parts.formatTokens) {
+          // Decorate "format(" wrapper
+          decorations.push({
+            from: parts.formatWrapper.funcStart,
+            to: parts.formatWrapper.funcEnd,
+            decoration: formatWrapperDecoration,
+          });
+
+          // Decorate each token/literal inside format(...)
+          for (const tokenPos of parts.formatTokens) {
+            decorations.push({
+              from: tokenPos.start,
+              to: tokenPos.end,
+              decoration: tokenPos.isToken ? formatTokenDecoration : formatLiteralDecoration,
+            });
+          }
+
+          // Decorate closing ")"
+          decorations.push({
+            from: parts.formatWrapper.parenClose,
+            to: parts.formatWrapper.parenClose + 1,
+            decoration: formatWrapperDecoration,
+          });
+        } else {
+          // Regular format (preset like ISO, compact, etc.)
+          decorations.push({ from: parts.format.start, to: parts.format.end, decoration: formatDecoration });
+        }
       }
 
       // Optional marker before closing

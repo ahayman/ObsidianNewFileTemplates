@@ -20,6 +20,7 @@ import {
   TIME_FORMAT_PRESETS,
   VALUE_TYPE_ALIASES,
 } from "../types";
+import { MOMENT_TOKENS, filterTokens, getTokenExample } from "../utils/momentTokens";
 
 /**
  * Represents a suggestion item for the autocomplete dropdown
@@ -28,13 +29,15 @@ interface PromptSuggestion {
   /** Display label */
   label: string;
   /** Category of suggestion */
-  type: "syntax" | "valueType" | "dateFormat" | "timeFormat" | "customFormat";
+  type: "syntax" | "valueType" | "dateFormat" | "timeFormat" | "customFormat" | "formatToken";
   /** Description shown below the label */
   description: string;
   /** Text to insert when selected */
   insertText: string;
   /** Example output (for format presets) */
   example?: string;
+  /** Token category for grouping */
+  tokenCategory?: string;
 }
 
 /**
@@ -45,7 +48,8 @@ type SuggestionContext =
   | { type: "valueType"; name: string; query: string }
   | { type: "dateFormat"; name: string; valueType: string; query: string }
   | { type: "timeFormat"; name: string; valueType: string; query: string }
-  | { type: "datetimeFormat"; name: string; valueType: string; query: string };
+  | { type: "datetimeFormat"; name: string; valueType: string; query: string }
+  | { type: "formatToken"; name: string; valueType: string; query: string };
 
 /**
  * EditorSuggest for prompt syntax autocomplete
@@ -111,6 +115,24 @@ export class PromptSuggest extends EditorSuggest<PromptSuggestion> {
       };
     }
 
+    // Pattern 3.5: Inside format(...) - suggest moment.js tokens
+    // Matches: {% Name:date:format( or {% Name:date:format(YYYY or {% Name:date:format(YYYY-
+    const formatTokenMatch = beforeCursor.match(
+      /\{%\??\s*([^:%]+):(date|time|datetime):format\(([^)]*)$/i
+    );
+    if (formatTokenMatch) {
+      const formatContent = formatTokenMatch[3] || "";
+      const valueType = formatTokenMatch[2].toLowerCase();
+      // Get the last partial token being typed (letters only, after any non-letter)
+      const lastTokenMatch = formatContent.match(/([A-Za-z]*)$/);
+      const query = lastTokenMatch ? lastTokenMatch[1] : "";
+      return {
+        start: { line: cursor.line, ch: cursor.ch - query.length },
+        end: cursor,
+        query: `formatToken:${formatTokenMatch[1].trim()}:${valueType}:${query}`,
+      };
+    }
+
     // Pattern 4: Typing a name after {% - provide name suggestions or close
     const nameMatch = beforeCursor.match(/\{%\??\s+([^\s:%]*)$/);
     if (nameMatch) {
@@ -156,6 +178,14 @@ export class PromptSuggest extends EditorSuggest<PromptSuggestion> {
       const valueType = parts[1] || "";
       const formatQuery = (parts[2] || "").toLowerCase();
       return this.getFormatSuggestions(valueType, formatQuery);
+    }
+
+    if (query.startsWith("formatToken:")) {
+      // Inside format(...) - suggest moment.js tokens
+      const parts = query.slice(12).split(":");
+      const valueType = parts[1] || "";
+      const tokenQuery = (parts[2] || "").toLowerCase();
+      return this.getFormatTokenSuggestions(valueType, tokenQuery);
     }
 
     return [];
@@ -493,5 +523,62 @@ export class PromptSuggest extends EditorSuggest<PromptSuggestion> {
       default:
         return "";
     }
+  }
+
+  /**
+   * Suggestions for moment.js format tokens inside format(...)
+   */
+  private getFormatTokenSuggestions(
+    valueType: string,
+    query: string
+  ): PromptSuggestion[] {
+    const type = valueType.toLowerCase();
+
+    // Filter tokens based on value type context
+    let relevantTokens = MOMENT_TOKENS;
+
+    // For date-only, prioritize date tokens
+    // For time-only, prioritize time tokens
+    // For datetime, show all
+    if (type === "date") {
+      // Show date-related tokens first, but include time for flexibility
+      relevantTokens = [...MOMENT_TOKENS].sort((a, b) => {
+        const dateCategories = ["year", "month", "day"];
+        const aIsDate = dateCategories.includes(a.category);
+        const bIsDate = dateCategories.includes(b.category);
+        if (aIsDate && !bIsDate) return -1;
+        if (!aIsDate && bIsDate) return 1;
+        return 0;
+      });
+    } else if (type === "time") {
+      // Show time-related tokens first
+      relevantTokens = [...MOMENT_TOKENS].sort((a, b) => {
+        const timeCategories = ["hour", "minute", "second", "ampm"];
+        const aIsTime = timeCategories.includes(a.category);
+        const bIsTime = timeCategories.includes(b.category);
+        if (aIsTime && !bIsTime) return -1;
+        if (!aIsTime && bIsTime) return 1;
+        return 0;
+      });
+    }
+
+    // Filter by query
+    const filtered = query
+      ? relevantTokens.filter(
+          (t) =>
+            t.token.toLowerCase().startsWith(query) ||
+            t.description.toLowerCase().includes(query)
+        )
+      : relevantTokens;
+
+    // Map to suggestions
+    return filtered.map((token) => ({
+      label: token.token,
+      type: "formatToken" as const,
+      description: token.description,
+      insertText: token.token,
+      example: getTokenExample(token),
+      tokenCategory: token.category,
+    }));
   }
 }

@@ -232,6 +232,53 @@ describe("PromptHighlighter", () => {
         expect(parts.type).toEqual({ start: 5, end: 9 });
         expect(parts.format).toEqual({ start: 10, end: 25 });
       });
+
+      it("should include format wrapper positions for format()", () => {
+        const parts = parsePromptContent("Date:date:format(YYYY-MM-DD)", 0);
+
+        expect(parts.formatWrapper).toBeDefined();
+        expect(parts.formatWrapper?.funcStart).toBe(10); // start of "format("
+        expect(parts.formatWrapper?.funcEnd).toBe(17);   // after "format("
+        expect(parts.formatWrapper?.parenClose).toBe(27); // ")"
+      });
+
+      it("should include parsed format tokens", () => {
+        const parts = parsePromptContent("Date:date:format(YYYY-MM-DD)", 0);
+
+        expect(parts.formatTokens).toBeDefined();
+        expect(parts.formatTokens?.length).toBe(5); // YYYY, -, MM, -, DD
+
+        // Check first token is YYYY
+        expect(parts.formatTokens?.[0]).toMatchObject({
+          isToken: true,
+        });
+
+        // Check second part is literal "-"
+        expect(parts.formatTokens?.[1]).toMatchObject({
+          isToken: false,
+        });
+      });
+
+      it("should have correct positions for format tokens", () => {
+        const parts = parsePromptContent("D:date:format(MMM DD, YYYY)", 0);
+
+        // Format tokens start after "format(" which is at position 7 (after "D:date:")
+        // "format(" is 7 chars, so tokens start at position 14
+        const tokens = parts.formatTokens;
+        expect(tokens).toBeDefined();
+
+        // MMM should be a token
+        const mmm = tokens?.find(t => t.isToken && t.end - t.start === 3);
+        expect(mmm).toBeDefined();
+
+        // YYYY should be a token
+        const yyyy = tokens?.find(t => t.isToken && t.end - t.start === 4);
+        expect(yyyy).toBeDefined();
+
+        // Literals (space, comma-space) should exist
+        const literals = tokens?.filter(t => !t.isToken);
+        expect(literals?.length).toBeGreaterThan(0);
+      });
     });
 
     describe("edge cases", () => {

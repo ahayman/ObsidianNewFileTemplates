@@ -8,6 +8,8 @@ Create new notes with templated titles and optional file content templates. Quic
 
 - **Title Templates**: Define patterns for generating filenames with date/time variables
 - **User Prompts**: Add dynamic input fields (`{% Prompt Name %}`) that are filled in at file creation time
+- **Syntax Highlighting**: Visual highlighting for prompt syntax in the editor and settings
+- **Autocomplete**: Smart suggestions when typing `{%` for prompts or `{{` for variables
 - **File Templates**: Optionally apply content templates to new files (with variable substitution)
 - **Templater Integration**: Automatically process Templater syntax in your file templates
 - **Obsidian Integration**: Uses your configured date/time formats from Obsidian's core Templates plugin
@@ -218,6 +220,59 @@ Create flexible templates where some fields are optional:
 - With subtitle: `My Article - Part One.md`
 - Without subtitle: `My Article.md`
 
+### Syntax Highlighting & Autocomplete
+
+The plugin provides syntax highlighting and autocomplete to help you write template patterns more easily.
+
+**Main Editor (Prompt Syntax):**
+
+When editing files that contain prompt syntax (`{% %}`), you'll see:
+- **Syntax Highlighting**: Prompts are visually distinguished with colored brackets, names, types, and formats
+- **Autocomplete**: Type `{%` to trigger suggestions for:
+  - Prompt templates (`{% Name %}`, `{%? Optional ?%}`)
+  - Value types (`text`, `number`, `date`, `time`, `datetime`)
+  - Date format presets (`ISO`, `compact`, `US`, `EU`, `short`, `long`)
+  - Time format presets (`ISO`, `24-hour`, `12-hour`, etc.)
+  - Custom format option (`format(...)`)
+
+**Custom Format Tokens:**
+
+When using custom formats with `format(...)`, the plugin provides intelligent highlighting and autocomplete for moment.js tokens:
+
+- **Token Highlighting**: Inside `format(...)`, moment.js tokens like `YYYY`, `MM`, `DD` are highlighted distinctly from literal text like `-` or `,`
+- **Token Autocomplete**: Type inside `format(` to see suggestions for all moment.js format tokens with:
+  - Token description (e.g., "4-digit year", "Full month name")
+  - Live example based on current date/time
+  - Context-aware ordering (date tokens appear first for date prompts, time tokens first for time prompts)
+
+**Common Format Tokens:**
+
+| Token | Description | Example |
+|-------|-------------|---------|
+| `YYYY` | 4-digit year | 2024 |
+| `MM` | Month (zero-padded) | 03 |
+| `DD` | Day (zero-padded) | 15 |
+| `MMMM` | Full month name | March |
+| `MMM` | Abbreviated month | Mar |
+| `dddd` | Full weekday | Friday |
+| `HH` | Hour 24h (zero-padded) | 14 |
+| `hh` | Hour 12h (zero-padded) | 02 |
+| `mm` | Minutes (zero-padded) | 30 |
+| `ss` | Seconds (zero-padded) | 45 |
+| `A` | AM/PM uppercase | PM |
+
+See the [moment.js format documentation](https://momentjs.com/docs/#/displaying/format/) for the complete list of tokens.
+
+**Settings (Title Pattern Field):**
+
+The title pattern input in settings provides enhanced editing:
+- **Variable Highlighting**: `{{variable}}` syntax is highlighted, with invalid variables shown in red
+- **Prompt Highlighting**: `{% prompt %}` syntax is highlighted with the same colors as the main editor
+- **Variable Autocomplete**: Type `{{` to see suggestions for all supported variables with descriptions
+- **Prompt Autocomplete**: Type `{%` to see prompt syntax suggestions
+
+**Note:** Prompts inside fenced code blocks (``` or ~~~) are not highlighted or processed, allowing you to document prompt syntax in your templates.
+
 ### File Template Variables
 
 When you specify a file template, its content is processed with variable substitution (matching Obsidian's Templates plugin behavior):
@@ -413,7 +468,7 @@ src/
    # Or copy files
    cp main.js manifest.json styles.css /path/to/vault/.obsidian/plugins/new-file-templates/
    ```
-3. Reload Obsidian (`Ctrl/Cmd + R`)
+3. Reload Obsidian (`Ctrl/Cmd + R`) or `Ctrl/Cmd + p` and search for the `Reload app without saving` command.
 
 ## License
 

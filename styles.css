@@ -1754,6 +1754,23 @@
   font-style: italic;
 }
 
+/* Format wrapper: format( and ) */
+.cm-format-wrapper {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Moment.js format tokens (YYYY, MM, DD, etc.) */
+.cm-format-token {
+  color: var(--color-cyan);
+  font-weight: 500;
+}
+
+/* Literal text between format tokens (, -, :, etc.) */
+.cm-format-literal {
+  color: var(--text-faint);
+}
+
 /* ========================================
    Variable Syntax Highlighting (Settings)
    ======================================== */

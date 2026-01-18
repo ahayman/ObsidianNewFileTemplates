@@ -149,6 +149,63 @@ describe("PromptSuggest", () => {
       });
     });
 
+    describe("format token patterns (inside format(...))", () => {
+      it("should trigger on {% Name:date:format(", () => {
+        const editor = new Editor("{% Name:date:format(");
+        const cursor: EditorPosition = { line: 0, ch: 20 };
+        const result = suggest.onTrigger(cursor, editor, null);
+
+        expect(result).not.toBeNull();
+        expect(result?.query).toBe("formatToken:Name:date:");
+      });
+
+      it("should trigger on {% Name:date:format(YYYY", () => {
+        const editor = new Editor("{% Name:date:format(YYYY");
+        const cursor: EditorPosition = { line: 0, ch: 24 };
+        const result = suggest.onTrigger(cursor, editor, null);
+
+        expect(result).not.toBeNull();
+        expect(result?.query).toBe("formatToken:Name:date:YYYY");
+      });
+
+      it("should trigger on {% Name:date:format(YYYY-MM-", () => {
+        const editor = new Editor("{% Name:date:format(YYYY-MM-");
+        const cursor: EditorPosition = { line: 0, ch: 28 };
+        const result = suggest.onTrigger(cursor, editor, null);
+
+        expect(result).not.toBeNull();
+        // Query should be empty since we're after a non-letter
+        expect(result?.query).toBe("formatToken:Name:date:");
+      });
+
+      it("should trigger with partial token after separator", () => {
+        const editor = new Editor("{% Date:date:format(YYYY-M");
+        const cursor: EditorPosition = { line: 0, ch: 26 };
+        const result = suggest.onTrigger(cursor, editor, null);
+
+        expect(result).not.toBeNull();
+        expect(result?.query).toBe("formatToken:Date:date:M");
+      });
+
+      it("should trigger for time format", () => {
+        const editor = new Editor("{% Time:time:format(HH:");
+        const cursor: EditorPosition = { line: 0, ch: 23 };
+        const result = suggest.onTrigger(cursor, editor, null);
+
+        expect(result).not.toBeNull();
+        expect(result?.query).toBe("formatToken:Time:time:");
+      });
+
+      it("should trigger for datetime format", () => {
+        const editor = new Editor("{% When:datetime:format(YYYY-");
+        const cursor: EditorPosition = { line: 0, ch: 29 };
+        const result = suggest.onTrigger(cursor, editor, null);
+
+        expect(result).not.toBeNull();
+        expect(result?.query).toBe("formatToken:When:datetime:");
+      });
+    });
+
     describe("code block detection", () => {
       it("should NOT trigger inside a code block", () => {
         const editor = new Editor("```\n{% Name\n```");
@@ -374,6 +431,63 @@ describe("PromptSuggest", () => {
 
         expect(isoSuggestion?.example).toBeDefined();
         expect(isoSuggestion?.example).toMatch(/^\d{2}:\d{2}:\d{2}$/);
+      });
+    });
+
+    describe("format token query (inside format(...))", () => {
+      it("should return moment.js token suggestions", () => {
+        const editor = new Editor("");
+        const suggestions = suggest.testGetSuggestions("formatToken:Name:date:", editor);
+
+        expect(suggestions.length).toBeGreaterThan(0);
+        expect(suggestions.some((s) => s.label === "YYYY")).toBe(true);
+        expect(suggestions.some((s) => s.label === "MM")).toBe(true);
+        expect(suggestions.some((s) => s.label === "DD")).toBe(true);
+      });
+
+      it("should filter tokens by query", () => {
+        const editor = new Editor("");
+        const suggestions = suggest.testGetSuggestions("formatToken:Name:date:Y", editor);
+
+        expect(suggestions.length).toBeGreaterThan(0);
+        expect(suggestions.every((s) => s.label.startsWith("Y") || s.description.toLowerCase().includes("y"))).toBe(true);
+      });
+
+      it("should include live examples for tokens", () => {
+        const editor = new Editor("");
+        const suggestions = suggest.testGetSuggestions("formatToken:Name:date:", editor);
+        const yyyySuggestion = suggestions.find((s) => s.label === "YYYY");
+
+        expect(yyyySuggestion?.example).toBeDefined();
+        expect(yyyySuggestion?.example).toMatch(/^\d{4}$/);
+      });
+
+      it("should prioritize date tokens for date type", () => {
+        const editor = new Editor("");
+        const suggestions = suggest.testGetSuggestions("formatToken:Name:date:", editor);
+
+        // First few suggestions should be date-related
+        const first5 = suggestions.slice(0, 5);
+        const dateTokens = ["YYYY", "YY", "MMMM", "MMM", "MM", "M", "DD", "D"];
+        expect(first5.some((s) => dateTokens.includes(s.label))).toBe(true);
+      });
+
+      it("should prioritize time tokens for time type", () => {
+        const editor = new Editor("");
+        const suggestions = suggest.testGetSuggestions("formatToken:Name:time:", editor);
+
+        // First few suggestions should be time-related
+        const first5 = suggestions.slice(0, 5);
+        const timeTokens = ["HH", "H", "hh", "h", "mm", "m", "ss", "s", "A", "a"];
+        expect(first5.some((s) => timeTokens.includes(s.label))).toBe(true);
+      });
+
+      it("should include token category", () => {
+        const editor = new Editor("");
+        const suggestions = suggest.testGetSuggestions("formatToken:Name:date:", editor);
+        const yyyySuggestion = suggestions.find((s) => s.label === "YYYY");
+
+        expect(yyyySuggestion?.tokenCategory).toBe("year");
       });
     });
   });
