@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { CalendarGrid } from "./CalendarGrid";
+import { CalendarGrid, SlideDirection } from "./CalendarGrid";
 import { DatePickerHeader } from "./DatePickerHeader";
 import {
   formatDate,
@@ -54,6 +54,14 @@ export function DatePicker({ value, onChange, minDate, maxDate, autoFocus = fals
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Slide animation direction
+  const [slideDirection, setSlideDirection] = useState<SlideDirection>(null);
+
+  // Clear slide direction after animation completes
+  const handleSlideComplete = useCallback(() => {
+    setSlideDirection(null);
+  }, []);
+
   // Update selected date when value prop changes
   useEffect(() => {
     if (value) {
@@ -66,24 +74,28 @@ export function DatePicker({ value, onChange, minDate, maxDate, autoFocus = fals
     }
   }, [value]);
 
-  // Navigation handlers
+  // Navigation handlers - each sets the appropriate slide direction
   const handlePrevMonth = useCallback(() => {
+    setSlideDirection("left");
     const { month, year } = getPreviousMonth(displayMonth, displayYear);
     setDisplayMonth(month);
     setDisplayYear(year);
   }, [displayMonth, displayYear]);
 
   const handleNextMonth = useCallback(() => {
+    setSlideDirection("right");
     const { month, year } = getNextMonth(displayMonth, displayYear);
     setDisplayMonth(month);
     setDisplayYear(year);
   }, [displayMonth, displayYear]);
 
   const handlePrevYear = useCallback(() => {
+    setSlideDirection("up");
     setDisplayYear((y) => y - 1);
   }, []);
 
   const handleNextYear = useCallback(() => {
+    setSlideDirection("down");
     setDisplayYear((y) => y + 1);
   }, []);
 
@@ -182,6 +194,8 @@ export function DatePicker({ value, onChange, minDate, maxDate, autoFocus = fals
         onPrevYear={handlePrevYear}
         onNextYear={handleNextYear}
         autoFocus={autoFocus}
+        slideDirection={slideDirection}
+        onSlideComplete={handleSlideComplete}
       />
 
       {/* Footer with Today button and optional Clear button */}

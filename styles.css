@@ -1057,6 +1057,67 @@
   padding: 8px;
 }
 
+/* Slide Animations for Calendar Navigation */
+@keyframes slideFromTop {
+  from {
+    transform: translateY(-30%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideFromBottom {
+  from {
+    transform: translateY(30%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideFromLeft {
+  from {
+    transform: translateX(-30%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideFromRight {
+  from {
+    transform: translateX(30%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.date-picker-grid-container.slide-from-up {
+  animation: slideFromTop 180ms ease-out;
+}
+
+.date-picker-grid-container.slide-from-down {
+  animation: slideFromBottom 180ms ease-out;
+}
+
+.date-picker-grid-container.slide-from-left {
+  animation: slideFromLeft 180ms ease-out;
+}
+
+.date-picker-grid-container.slide-from-right {
+  animation: slideFromRight 180ms ease-out;
+}
+
 /* Day Headers */
 .date-picker-day-headers {
   display: grid;

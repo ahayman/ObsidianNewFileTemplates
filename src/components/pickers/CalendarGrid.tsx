@@ -5,7 +5,7 @@
  * Supports touch tap selection and keyboard navigation.
  */
 
-import { useCallback, useMemo, useRef, useEffect } from "react";
+import { useCallback, useMemo, useRef, useEffect, useState } from "react";
 import {
   generateCalendarGrid,
   isSameDay,
@@ -14,6 +14,9 @@ import {
   getPreviousMonth,
   getNextMonth,
 } from "../../utils/dateTimeUtils";
+
+/** Direction of slide animation when navigating */
+export type SlideDirection = "up" | "down" | "left" | "right" | null;
 
 interface CalendarGridProps {
   /** Currently displayed month (1-12) */
@@ -34,6 +37,10 @@ interface CalendarGridProps {
   onNextYear?: () => void;
   /** Whether to auto-focus on mount (default: false) */
   autoFocus?: boolean;
+  /** Direction to slide from when view changes */
+  slideDirection?: SlideDirection;
+  /** Called when slide animation completes */
+  onSlideComplete?: () => void;
 }
 
 export function CalendarGrid({
@@ -46,9 +53,25 @@ export function CalendarGrid({
   onPrevYear,
   onNextYear,
   autoFocus = false,
+  slideDirection = null,
+  onSlideComplete,
 }: CalendarGridProps) {
   const gridRef = useRef<HTMLDivElement>(null);
   const focusedDateRef = useRef<Date | null>(selectedDate);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  // Handle animation end
+  const handleAnimationEnd = useCallback(() => {
+    setIsAnimating(false);
+    onSlideComplete?.();
+  }, [onSlideComplete]);
+
+  // Trigger animation when slideDirection changes
+  useEffect(() => {
+    if (slideDirection) {
+      setIsAnimating(true);
+    }
+  }, [slideDirection, month, year]);
 
   // Generate the calendar grid
   const grid = useMemo(() => generateCalendarGrid(month, year), [month, year]);
@@ -284,14 +307,20 @@ export function CalendarGrid({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoFocus]);
 
+  // Build animation class based on direction
+  const animationClass = isAnimating && slideDirection
+    ? `slide-from-${slideDirection}`
+    : "";
+
   return (
     <div
-      className="date-picker-grid-container"
+      className={`date-picker-grid-container ${animationClass}`.trim()}
       ref={gridRef}
       role="grid"
       aria-label="Calendar"
       tabIndex={0}
       onKeyDown={handleGridKeyDown}
+      onAnimationEnd={handleAnimationEnd}
     >
       {/* Day headers */}
       <div className="date-picker-day-headers" role="row">
