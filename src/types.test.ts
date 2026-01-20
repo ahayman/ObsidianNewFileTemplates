@@ -52,10 +52,15 @@ describe("types", () => {
           },
         ],
         templateFolder: "MyTemplates",
+        autoBracketClosure: true,
       };
 
       expect(settings.templates).toHaveLength(1);
       expect(settings.templateFolder).toBe("MyTemplates");
+    });
+
+    it("should have default autoBracketClosure setting", () => {
+      expect(DEFAULT_SETTINGS.autoBracketClosure).toBe(true);
     });
   });
 });

@@ -18,6 +18,8 @@ interface TemplateListProps {
   templateFolder: string;
   /** Called when templates are updated */
   onUpdate: (templates: TitleTemplate[]) => void;
+  /** Whether to enable bracket auto-closure (default: true) */
+  autoBracketClosure?: boolean;
 }
 
 /**
@@ -30,7 +32,7 @@ function reorderArray<T>(array: T[], fromIndex: number, toIndex: number): T[] {
   return result;
 }
 
-export function TemplateList({ templates, templateFolder, onUpdate }: TemplateListProps) {
+export function TemplateList({ templates, templateFolder, onUpdate, autoBracketClosure = true }: TemplateListProps) {
   // Track which template is being edited (by id), or "new" for adding
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -176,6 +178,7 @@ export function TemplateList({ templates, templateFolder, onUpdate }: TemplateLi
           templateFolder={templateFolder}
           onSave={handleSave}
           onCancel={handleCancel}
+          autoBracketClosure={autoBracketClosure}
         />
       )}
 

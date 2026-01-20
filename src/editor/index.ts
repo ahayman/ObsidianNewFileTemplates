@@ -6,3 +6,4 @@
 
 export { PromptSuggest } from "./PromptSuggest";
 export { promptHighlighter } from "./PromptHighlighter";
+export { createEditorBracketClosureExtension } from "./BracketClosure";

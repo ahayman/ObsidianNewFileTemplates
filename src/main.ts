@@ -18,7 +18,7 @@ import {
   doesTemplaterAutoProcess,
   processTemplaterInFile,
 } from "./services/TemplaterService";
-import { PromptSuggest, promptHighlighter } from "./editor";
+import { PromptSuggest, promptHighlighter, createEditorBracketClosureExtension } from "./editor";
 
 export default class FileTemplatePlugin extends Plugin {
   settings: PluginSettings = DEFAULT_SETTINGS;
@@ -74,6 +74,11 @@ export default class FileTemplatePlugin extends Plugin {
 
     // Register editor extension for prompt syntax highlighting
     this.registerEditorExtension(promptHighlighter);
+
+    // Register editor extension for bracket auto-closure (if enabled)
+    if (this.settings.autoBracketClosure !== false) {
+      this.registerEditorExtension(createEditorBracketClosureExtension());
+    }
   }
 
   async onunload(): Promise<void> {

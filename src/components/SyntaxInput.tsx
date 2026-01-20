@@ -27,6 +27,7 @@ import {
 } from "../types";
 import { parseFormatString, MOMENT_TOKENS, getTokenExample } from "../utils/momentTokens";
 import { moment } from "obsidian";
+import { createBracketClosureExtension } from "./bracketClosure";
 
 interface SyntaxInputProps {
   /** Current value */
@@ -43,6 +44,10 @@ interface SyntaxInputProps {
   id?: string;
   /** Additional CSS class */
   className?: string;
+  /** Enable bracket auto-closure (default: true) */
+  autoBracketClosure?: boolean;
+  /** Enable {{ }} auto-closure (only for Settings Title formatter, default: true) */
+  enableCurlyBraceClosure?: boolean;
 }
 
 // Decoration styles for variables
@@ -637,6 +642,8 @@ export function SyntaxInput({
   enablePrompts = true,
   id,
   className = "",
+  autoBracketClosure = true,
+  enableCurlyBraceClosure = true,
 }: SyntaxInputProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -660,6 +667,8 @@ export function SyntaxInput({
     const extensions = [
       history(),
       preventNewline,
+      // Add bracket closure extension BEFORE default keymap so its Backspace handler takes precedence
+      ...(autoBracketClosure ? [createBracketClosureExtension({ enableCurlyBraceClosure })] : []),
       keymap.of([...defaultKeymap, ...historyKeymap, ...completionKeymap]),
       singleLineTheme,
       EditorView.lineWrapping,
@@ -703,7 +712,7 @@ export function SyntaxInput({
       view.destroy();
       viewRef.current = null;
     };
-  }, [enableVariables, enablePrompts]); // Recreate on feature toggle
+  }, [enableVariables, enablePrompts, autoBracketClosure, enableCurlyBraceClosure]); // Recreate on feature toggle
 
   // Update value from outside
   useEffect(() => {

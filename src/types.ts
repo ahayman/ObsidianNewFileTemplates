@@ -148,6 +148,8 @@ export interface PluginSettings {
   templates: TitleTemplate[];
   /** Default folder for templates (used in file picker) */
   templateFolder: string;
+  /** Whether to auto-close brackets when typing prompt syntax (default: true) */
+  autoBracketClosure: boolean;
 }
 
 /**
@@ -156,6 +158,7 @@ export interface PluginSettings {
 export const DEFAULT_SETTINGS: PluginSettings = {
   templates: [],
   templateFolder: "Templates",
+  autoBracketClosure: true,
 };
 
 /**

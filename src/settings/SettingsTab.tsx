@@ -61,6 +61,21 @@ export class FileTemplateSettingsTab extends PluginSettingTab {
           })
       );
 
+    // Auto-close brackets setting
+    new Setting(containerEl)
+      .setName("Auto-close brackets")
+      .setDesc("Automatically insert closing brackets when typing prompt syntax ({% %}, {%? ?%}, parentheses, and {{ }} in title patterns). Reload required for main editor changes.")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.autoBracketClosure ?? true)
+          .onChange(async (value) => {
+            this.plugin.settings.autoBracketClosure = value;
+            await this.plugin.saveSettings();
+            // Re-render to update SyntaxInput components immediately
+            this.renderReactComponent();
+          })
+      );
+
     // Divider
     containerEl.createEl("hr");
 
@@ -90,6 +105,7 @@ export class FileTemplateSettingsTab extends PluginSettingTab {
             templates={this.plugin.settings.templates}
             templateFolder={this.plugin.settings.templateFolder}
             onUpdate={this.handleTemplatesUpdate.bind(this)}
+            autoBracketClosure={this.plugin.settings.autoBracketClosure ?? true}
           />
         </AppContext.Provider>
       </StrictMode>

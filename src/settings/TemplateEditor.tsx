@@ -39,6 +39,8 @@ interface TemplateEditorProps {
   onSave: (template: TitleTemplate) => void;
   /** Called when cancel is clicked */
   onCancel: () => void;
+  /** Whether to enable bracket auto-closure (default: true) */
+  autoBracketClosure?: boolean;
 }
 
 /**
@@ -48,7 +50,7 @@ function generateId(): string {
   return `template-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
-export function TemplateEditor({ template, templateFolder, onSave, onCancel }: TemplateEditorProps) {
+export function TemplateEditor({ template, templateFolder, onSave, onCancel, autoBracketClosure = true }: TemplateEditorProps) {
   const app = useApp();
 
   // Form state
@@ -267,6 +269,8 @@ export function TemplateEditor({ template, templateFolder, onSave, onCancel }: T
           placeholder="e.g., {{date}}-{{time}}"
           enableVariables={true}
           enablePrompts={true}
+          autoBracketClosure={autoBracketClosure}
+          enableCurlyBraceClosure={true}
         />
         {errors.titlePattern && (
           <div className="file-template-editor-error">{errors.titlePattern}</div>
