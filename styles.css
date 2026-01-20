@@ -1774,6 +1774,16 @@
   font-style: italic;
 }
 
+/* List option values */
+.cm-prompt-list-option {
+  color: var(--color-cyan);
+}
+
+/* List commas between options */
+.cm-prompt-list-comma {
+  color: var(--text-muted);
+}
+
 /* Format wrapper: format( and ) */
 .cm-format-wrapper {
   color: var(--text-muted);
@@ -1941,4 +1951,365 @@
 /* Make preview item not look selectable */
 .file-template-syntax-input .cm-tooltip-autocomplete li[aria-selected]:has(.cm-completion-item-preview) {
   background: transparent;
+}
+
+/* ========================================
+   List Picker
+   ======================================== */
+
+.list-picker {
+  position: relative;
+  width: 100%;
+}
+
+.list-picker-input {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  cursor: pointer;
+  min-height: 42px;
+}
+
+.list-picker-input:focus {
+  border-color: var(--interactive-accent);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+}
+
+.list-picker-value {
+  flex: 1;
+  color: var(--text-normal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.list-picker-value.placeholder {
+  color: var(--text-faint);
+}
+
+.list-picker-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.list-picker-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.list-picker-clear:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.list-picker-chevron {
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.list-picker-chevron.open {
+  transform: rotate(180deg);
+}
+
+.list-picker-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 4px 0 0 0;
+  padding: 4px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  box-shadow: var(--shadow-s);
+  z-index: 100;
+  list-style: none;
+}
+
+.list-picker-option {
+  padding: 10px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-normal);
+  transition: background-color 0.15s ease;
+}
+
+.list-picker-option:hover,
+.list-picker-option.is-highlighted {
+  background: var(--background-modifier-hover);
+}
+
+.list-picker-option.is-selected {
+  color: var(--text-accent);
+  font-weight: 500;
+}
+
+/* ========================================
+   Multi-List Picker
+   ======================================== */
+
+.multi-list-picker {
+  position: relative;
+  width: 100%;
+}
+
+.multi-list-picker-input {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  cursor: pointer;
+  min-height: 42px;
+}
+
+.multi-list-picker-input:focus {
+  border-color: var(--interactive-accent);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+}
+
+.multi-list-picker-value {
+  flex: 1;
+  color: var(--text-normal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.multi-list-picker-value.placeholder {
+  color: var(--text-faint);
+}
+
+.multi-list-picker-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.multi-list-picker-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.multi-list-picker-clear:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.multi-list-picker-chevron {
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.multi-list-picker-chevron.open {
+  transform: rotate(180deg);
+}
+
+.multi-list-picker-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 4px 0 0 0;
+  padding: 4px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  box-shadow: var(--shadow-s);
+  z-index: 100;
+  list-style: none;
+}
+
+.multi-list-picker-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-normal);
+  transition: background-color 0.15s ease;
+}
+
+.multi-list-picker-option:hover,
+.multi-list-picker-option.is-highlighted {
+  background: var(--background-modifier-hover);
+}
+
+.multi-list-picker-option.is-selected {
+  background: rgba(var(--interactive-accent-rgb), 0.1);
+}
+
+.multi-list-picker-option.is-selected:hover,
+.multi-list-picker-option.is-selected.is-highlighted {
+  background: rgba(var(--interactive-accent-rgb), 0.15);
+}
+
+.multi-list-picker-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-primary);
+  color: var(--interactive-accent);
+  flex-shrink: 0;
+}
+
+.multi-list-picker-option.is-selected .multi-list-picker-checkbox {
+  background: var(--interactive-accent);
+  border-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.multi-list-picker-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ========================================
+   Settings Editor - List Options Builder
+   ======================================== */
+
+.file-template-list-options-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.file-template-list-option-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.file-template-list-option-row .file-template-editor-input {
+  flex: 1;
+}
+
+.file-template-list-option-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.file-template-list-option-remove:hover:not(:disabled) {
+  background: var(--background-modifier-error);
+  border-color: var(--background-modifier-error);
+  color: var(--text-on-accent);
+}
+
+.file-template-list-option-remove:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.file-template-list-option-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px dashed var(--background-modifier-border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: all 0.15s ease;
+  align-self: flex-start;
+}
+
+.file-template-list-option-add:hover {
+  background: var(--background-modifier-hover);
+  border-color: var(--interactive-accent);
+  color: var(--text-normal);
+}
+
+/* ========================================
+   Mobile List Picker Styles
+   ======================================== */
+
+.is-mobile .list-picker-input,
+.is-mobile .multi-list-picker-input {
+  padding: 14px 16px;
+  font-size: 16px;
+  min-height: 48px;
+}
+
+.is-mobile .list-picker-dropdown,
+.is-mobile .multi-list-picker-dropdown {
+  max-height: 300px;
+}
+
+.is-mobile .list-picker-option,
+.is-mobile .multi-list-picker-option {
+  padding: 14px 16px;
+  min-height: 48px;
+}
+
+.is-mobile .list-picker-clear,
+.is-mobile .multi-list-picker-clear {
+  padding: 8px;
+  min-width: 36px;
+  min-height: 36px;
+}
+
+.is-mobile .file-template-list-option-row {
+  gap: 10px;
+}
+
+.is-mobile .file-template-list-option-remove {
+  width: 40px;
+  height: 40px;
+}
+
+.is-mobile .file-template-list-option-add {
+  padding: 10px 16px;
+  font-size: 1em;
 }

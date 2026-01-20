@@ -124,6 +124,8 @@ You can configure prompt type and format directly in the syntax:
 | `{% Time:time:12-hour %}` | Time with 12-hour format |
 | `{% When:datetime:ISO,24-hour %}` | DateTime with date and time formats |
 | `{% Date:date:format(MMM DD, YYYY) %}` | Custom format |
+| `{% Priority:list:High,Medium,Low %}` | Single-select dropdown |
+| `{% Tags:multilist:Work,Personal,Urgent %}` | Multi-select dropdown |
 
 **Optional Prompts:** `{%? Name ?%}`
 
@@ -155,6 +157,8 @@ Or type the syntax directly using the inline configuration format.
 | Date | `date` | Date selection | Calendar picker |
 | Time | `time` | Time selection | Scrollable wheel picker |
 | Date & Time | `datetime` | Both date and time | Calendar + time picker |
+| List | `list` | Single selection from options | Dropdown picker |
+| Multi List | `multilist` | Multiple selections from options | Multi-select dropdown |
 
 **Date Format Presets:**
 
@@ -196,6 +200,34 @@ For datetime prompts, specify both date and time formats separated by comma:
 
 When using Date & Time prompts, if both the date format is ISO (YYYY-MM-DD) and the time format is ISO (HH:mm:ss), they will be combined using `T` instead of a space, producing a standard ISO 8601 datetime like `2024-03-15T14:30:45`.
 
+**List Pickers:**
+
+List pickers let you select from predefined options instead of typing free-form text. Options are specified as comma-separated values after the type.
+
+| Type | Syntax | Result |
+|------|--------|--------|
+| List | `{% Priority:list:High,Medium,Low %}` | Single selection dropdown |
+| Multi List | `{% Tags:multilist:Work,Personal,Urgent %}` | Multi-select dropdown |
+
+**List Picker Features:**
+- Auto-opens dropdown when focused
+- Keyboard navigation (arrow keys, Enter, Escape)
+- Clear button to remove selection
+- Closes automatically after selection
+
+**Multi List Picker Features:**
+- Stays open for multiple selections
+- Checkmarks indicate selected items
+- Shows count when multiple items selected (e.g., "3 items selected")
+- Selected values joined with comma-space in output
+
+**List Picker Examples:**
+
+| Pattern | User Selection | Result |
+|---------|----------------|--------|
+| `{% Status:list:Draft,Review,Final %}` | "Review" | `Review` |
+| `{% Category:multilist:Tech,Science,Art %}` | "Tech" and "Science" | `Tech, Science` |
+
 **Example Templates with Prompts:**
 
 **Book Notes:**
@@ -229,6 +261,18 @@ Create flexible templates where some fields are optional:
 - With subtitle: `My Article - Part One.md`
 - Without subtitle: `My Article.md`
 
+**Task Note with Priority:**
+- Pattern: `{% Priority:list:High,Medium,Low %} - {% Task Name %}`
+- Prompts: Priority (list), Task Name (text)
+- User selects "High", enters "Fix login bug"
+- Result: `High - Fix login bug.md`
+
+**Project with Tags:**
+- Pattern: `{% Project %} - {% Tags:multilist:Frontend,Backend,DevOps,Design %}`
+- Prompts: Project (text), Tags (multilist)
+- User enters "Website Redesign", selects "Frontend" and "Design"
+- Result: `Website Redesign - Frontend, Design.md`
+
 ### Syntax Highlighting & Autocomplete
 
 The plugin provides syntax highlighting and autocomplete to help you write template patterns more easily.
@@ -239,9 +283,10 @@ When editing files that contain prompt syntax (`{% %}`), you'll see:
 - **Syntax Highlighting**: Prompts are visually distinguished with colored brackets, names, types, and formats
 - **Autocomplete**: Type `{%` to trigger suggestions for:
   - Prompt templates (`{% Name %}`, `{%? Optional ?%}`)
-  - Value types (`text`, `number`, `date`, `time`, `datetime`)
+  - Value types (`text`, `number`, `date`, `time`, `datetime`, `list`, `multilist`)
   - Date format presets (`ISO`, `compact`, `US`, `EU`, `short`, `long`)
   - Time format presets (`ISO`, `24-hour`, `12-hour`, etc.)
+  - List options hint (after `list:` or `multilist:`)
   - Custom format option (`format(...)`)
 
 **Custom Format Tokens:**

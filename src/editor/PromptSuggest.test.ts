@@ -311,6 +311,8 @@ describe("PromptSuggest", () => {
         expect(labels).toContain("{% Name:date %}");
         expect(labels).toContain("{% Name:time %}");
         expect(labels).toContain("{% Name:datetime %}");
+        expect(labels).toContain("{% Name:list:... %}");
+        expect(labels).toContain("{% Name:multilist:... %}");
       });
     });
 
@@ -339,12 +341,14 @@ describe("PromptSuggest", () => {
         const editor = new Editor("");
         const suggestions = suggest.testGetSuggestions("valueType:Name:", editor);
 
-        expect(suggestions.length).toBe(5);
+        expect(suggestions.length).toBe(7);
         expect(suggestions.some((s) => s.label === "text")).toBe(true);
         expect(suggestions.some((s) => s.label === "number")).toBe(true);
         expect(suggestions.some((s) => s.label === "date")).toBe(true);
         expect(suggestions.some((s) => s.label === "time")).toBe(true);
         expect(suggestions.some((s) => s.label === "datetime")).toBe(true);
+        expect(suggestions.some((s) => s.label === "list")).toBe(true);
+        expect(suggestions.some((s) => s.label === "multilist")).toBe(true);
       });
 
       it("should filter value types based on query", () => {
@@ -362,6 +366,33 @@ describe("PromptSuggest", () => {
 
         expect(suggestions.length).toBe(1);
         expect(suggestions[0].label).toBe("number");
+      });
+
+      it("should filter to list types", () => {
+        const editor = new Editor("");
+        const suggestions = suggest.testGetSuggestions("valueType:Name:li", editor);
+
+        expect(suggestions.length).toBe(1);
+        expect(suggestions[0].label).toBe("list");
+      });
+
+      it("should filter to multilist type", () => {
+        const editor = new Editor("");
+        const suggestions = suggest.testGetSuggestions("valueType:Name:multi", editor);
+
+        expect(suggestions.length).toBe(1);
+        expect(suggestions[0].label).toBe("multilist");
+      });
+
+      it("should include example for list types", () => {
+        const editor = new Editor("");
+        const suggestions = suggest.testGetSuggestions("valueType:Name:", editor);
+
+        const listSuggestion = suggestions.find((s) => s.label === "list");
+        const multilistSuggestion = suggestions.find((s) => s.label === "multilist");
+
+        expect(listSuggestion?.example).toBeDefined();
+        expect(multilistSuggestion?.example).toBeDefined();
       });
     });
 

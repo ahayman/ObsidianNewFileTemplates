@@ -440,6 +440,8 @@ function promptCompletions(context: CompletionContext): CompletionResult | null 
         { label: "Name:date:", description: "Date picker with format" } as CustomCompletion,
         { label: "Name:time:", description: "Time picker with format" } as CustomCompletion,
         { label: "Name:datetime:", description: "DateTime picker with format" } as CustomCompletion,
+        { label: "Name:list:", description: "Dropdown list (single select)", example: "Opt1,Opt2,Opt3" } as CustomCompletion,
+        { label: "Name:multilist:", description: "Dropdown list (multi-select)", example: "Opt1,Opt2,Opt3" } as CustomCompletion,
       ],
     };
   }
@@ -448,12 +450,14 @@ function promptCompletions(context: CompletionContext): CompletionResult | null 
   const typeMatch = text.match(/\{%\??\s*[^:%]+:\s*([a-z]*)$/i);
   if (typeMatch) {
     const query = typeMatch[1].toLowerCase();
-    const typeOptions: Array<{ name: string; desc: string; apply: string }> = [
+    const typeOptions: Array<{ name: string; desc: string; apply: string; example?: string }> = [
       { name: "text", desc: "Free-form text input", apply: "text %}" },
       { name: "number", desc: "Numeric input only", apply: "number %}" },
       { name: "date", desc: "Date picker (add format)", apply: "date:" },
       { name: "time", desc: "Time picker (add format)", apply: "time:" },
       { name: "datetime", desc: "Date and time picker", apply: "datetime:" },
+      { name: "list", desc: "Single selection dropdown", apply: "list:", example: "Opt1,Opt2" },
+      { name: "multilist", desc: "Multi-selection dropdown", apply: "multilist:", example: "Opt1,Opt2" },
     ];
     return {
       from: context.pos - query.length,
@@ -463,7 +467,26 @@ function promptCompletions(context: CompletionContext): CompletionResult | null 
           label: t.name,
           apply: t.apply,
           description: t.desc,
+          example: t.example,
         } as CustomCompletion)),
+    };
+  }
+
+  // Check for list options completion (after list: or multilist:)
+  const listOptionsMatch = text.match(/\{%\??\s*[^:%]+:(list|multilist):\s*$/i);
+  if (listOptionsMatch) {
+    const listType = listOptionsMatch[1].toLowerCase();
+    return {
+      from: context.pos,
+      options: [
+        {
+          label: "Option1,Option2,Option3 %}",
+          description: listType === 'multilist'
+            ? "Add comma-separated options (user can select multiple)"
+            : "Add comma-separated options (user selects one)",
+          example: listType === 'multilist' ? "Values joined by ', '" : "Single value",
+        } as CustomCompletion,
+      ],
     };
   }
 

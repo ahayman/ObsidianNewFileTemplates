@@ -44,7 +44,7 @@ interface PromptEditorProps {
 
 export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
   const [name, setName] = useState(prompt?.name ?? "");
-  const [valueType, setValueType] = useState<"text" | "numeric" | "date" | "time" | "datetime">(
+  const [valueType, setValueType] = useState<"text" | "numeric" | "date" | "time" | "datetime" | "list" | "multilist">(
     prompt?.valueType ?? "text"
   );
   const [dateOutputFormat, setDateOutputFormat] = useState<DateOutputFormat>(
@@ -59,14 +59,46 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
   const [customTimeFormat, setCustomTimeFormat] = useState(
     prompt?.timeConfig?.customFormat ?? 'h:mm A'
   );
+  const [listOptions, setListOptions] = useState<string[]>(
+    prompt?.listConfig?.options ?? ['', '']
+  );
   const [isOptional, setIsOptional] = useState(prompt?.isOptional ?? false);
   const [error, setError] = useState<string | undefined>();
+  const [listError, setListError] = useState<string | undefined>();
 
   const isEditing = !!prompt;
 
   // Determine if we need to show format options
   const showDateFormat = valueType === 'date' || valueType === 'datetime';
   const showTimeFormat = valueType === 'time' || valueType === 'datetime';
+  const showListOptions = valueType === 'list' || valueType === 'multilist';
+
+  // Get valid (non-empty) list options for validation and preview
+  const validListOptions = useMemo(() =>
+    listOptions.map(opt => opt.trim()).filter(opt => opt.length > 0),
+    [listOptions]
+  );
+
+  // List option handlers
+  const handleListOptionChange = useCallback((index: number, value: string) => {
+    setListOptions(prev => {
+      const updated = [...prev];
+      updated[index] = value;
+      return updated;
+    });
+    setListError(undefined);
+  }, []);
+
+  const handleAddListOption = useCallback(() => {
+    setListOptions(prev => [...prev, '']);
+  }, []);
+
+  const handleRemoveListOption = useCallback((index: number) => {
+    setListOptions(prev => {
+      if (prev.length <= 2) return prev; // Keep minimum 2 fields
+      return prev.filter((_, i) => i !== index);
+    });
+  }, []);
 
   // For datetime with inline config, check if using single custom format
   const useSingleCustomFormat = valueType === 'datetime' &&
@@ -129,8 +161,14 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
       };
     }
 
+    if (valueType === 'list' || valueType === 'multilist') {
+      p.listConfig = {
+        options: validListOptions,
+      };
+    }
+
     return p;
-  }, [prompt, name, valueType, dateOutputFormat, timeOutputFormat, customDateFormat, customTimeFormat, isOptional]);
+  }, [prompt, name, valueType, dateOutputFormat, timeOutputFormat, customDateFormat, customTimeFormat, validListOptions, isOptional]);
 
   const previewSyntax = createFullPromptSyntax(currentPrompt);
 
@@ -140,6 +178,12 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
 
     if (!validation.valid) {
       setError(validation.error);
+      return;
+    }
+
+    // Validate list options if applicable
+    if ((valueType === 'list' || valueType === 'multilist') && validListOptions.length < 2) {
+      setListError('At least 2 options are required');
       return;
     }
 
@@ -166,9 +210,16 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
       };
     }
 
+    // Add list config if applicable
+    if (valueType === 'list' || valueType === 'multilist') {
+      savedPrompt.listConfig = {
+        options: validListOptions,
+      };
+    }
+
     const syntax = createFullPromptSyntax(savedPrompt);
     onSave(savedPrompt, syntax);
-  }, [prompt, name, valueType, dateOutputFormat, timeOutputFormat, customDateFormat, customTimeFormat, isOptional, onSave]);
+  }, [prompt, name, valueType, dateOutputFormat, timeOutputFormat, customDateFormat, customTimeFormat, validListOptions, isOptional, onSave]);
 
   return (
     <div className="file-template-prompt-editor">
@@ -214,13 +265,15 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
           id="prompt-value-type"
           className="file-template-editor-select"
           value={valueType}
-          onChange={(e) => setValueType(e.target.value as "text" | "numeric" | "date" | "time" | "datetime")}
+          onChange={(e) => setValueType(e.target.value as "text" | "numeric" | "date" | "time" | "datetime" | "list" | "multilist")}
                   >
           <option value="text">Text (any characters)</option>
           <option value="numeric">Numeric (numbers only)</option>
           <option value="date">Date (calendar picker)</option>
           <option value="time">Time (time picker)</option>
           <option value="datetime">Date & Time (both pickers)</option>
+          <option value="list">List (single selection)</option>
+          <option value="multilist">Multi-select List (multiple selections)</option>
         </select>
         <div className="file-template-editor-hint">
           {valueType === "numeric" && "Shows a number keyboard on mobile devices."}
@@ -228,6 +281,8 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
           {valueType === "time" && "Shows a time picker with scrollable wheels."}
           {valueType === "datetime" && "Shows both date and time pickers."}
           {valueType === "text" && "Accepts any text input."}
+          {valueType === "list" && "Shows a dropdown list to select a single option."}
+          {valueType === "multilist" && "Shows a dropdown list to select multiple options."}
         </div>
       </div>
 
@@ -245,6 +300,52 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
           Optional fields can be left empty when creating files.
         </div>
       </div>
+
+      {/* List Options (shown for list/multilist) */}
+      {showListOptions && (
+        <div className="file-template-editor-field">
+          <label className="file-template-editor-label">
+            List Options
+          </label>
+          <div className="file-template-list-options-inputs">
+            {listOptions.map((option, index) => (
+              <div key={index} className="file-template-list-option-row">
+                <input
+                  type="text"
+                  className="file-template-editor-input"
+                  value={option}
+                  onChange={(e) => handleListOptionChange(index, e.target.value)}
+                  placeholder={`Option ${index + 1}`}
+                />
+                <button
+                  type="button"
+                  className="file-template-list-option-remove"
+                  onClick={() => handleRemoveListOption(index)}
+                  disabled={listOptions.length <= 2}
+                  title={listOptions.length <= 2 ? "Minimum 2 options required" : "Remove option"}
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            className="file-template-list-option-add"
+            onClick={handleAddListOption}
+          >
+            + Add Option
+          </button>
+          {listError && <div className="file-template-editor-error">{listError}</div>}
+          <div className="file-template-editor-hint">
+            {valueType === 'multilist'
+              ? 'Users can select multiple options. Selected values will be joined with ", " in the output.'
+              : 'Users will select one option from this list.'}
+          </div>
+        </div>
+      )}
 
       {/* Date Format (shown for date/datetime, but not for datetime with single custom format) */}
       {showDateFormat && !useSingleCustomFormat && (
@@ -433,6 +534,8 @@ export function PromptListItem({
     date: "date",
     time: "time",
     datetime: "date & time",
+    list: "list",
+    multilist: "multi-select",
   };
 
   return (

@@ -140,7 +140,12 @@ export function parsePromptSyntax(rawContent: string, isOptional: boolean = fals
   };
 
   // Parse format based on type
-  if (valueType === 'date') {
+  if (valueType === 'list' || valueType === 'multilist') {
+    // Parse comma-separated options
+    // Options are separated by commas and may include spaces
+    const options = formatStr.split(',').map(opt => opt.trim()).filter(opt => opt.length > 0);
+    result.listOptions = options;
+  } else if (valueType === 'date') {
     // Single preset for date
     const dateFormat = DATE_FORMAT_PRESETS[formatStr];
     if (dateFormat) {
@@ -239,6 +244,13 @@ export function extractPrompts(pattern: string): UserPrompt[] {
         prompt.timeConfig = {
           outputFormat: parsed.timeFormat,
           customFormat: parsed.customFormat,
+        };
+      }
+
+      // Add list config if applicable
+      if ((parsed.valueType === 'list' || parsed.valueType === 'multilist') && parsed.listOptions) {
+        prompt.listConfig = {
+          options: parsed.listOptions,
         };
       }
 
@@ -429,9 +441,39 @@ export function validatePromptValue(
       }
       break;
     }
+
+    case "list": {
+      // For single-select list, value must be one of the options
+      if (prompt.listConfig?.options && prompt.listConfig.options.length > 0) {
+        if (!prompt.listConfig.options.includes(value)) {
+          return {
+            valid: false,
+            error: "Value must be one of the available options",
+          };
+        }
+      }
+      break;
+    }
+
+    case "multilist": {
+      // For multi-select list, each value must be one of the options
+      if (prompt.listConfig?.options && prompt.listConfig.options.length > 0) {
+        const selectedValues = value.split(',').map(v => v.trim()).filter(v => v.length > 0);
+        for (const selectedValue of selectedValues) {
+          if (!prompt.listConfig.options.includes(selectedValue)) {
+            return {
+              valid: false,
+              error: `"${selectedValue}" is not a valid option`,
+            };
+          }
+        }
+      }
+      break;
+    }
   }
 
   // Check for invalid filename characters (skip for date/time/datetime as they use safe formats)
+  // Also skip for list/multilist as values are from predefined options
   if (prompt.valueType === "text" || prompt.valueType === "numeric") {
     if (INVALID_FILENAME_CHARS.test(value)) {
       return {
@@ -564,6 +606,8 @@ const VALUE_TYPE_TO_SYNTAX: Record<string, string> = {
   'date': 'date',
   'time': 'time',
   'datetime': 'datetime',
+  'list': 'list',
+  'multilist': 'multilist',
 };
 
 /**
@@ -597,7 +641,12 @@ export function createFullPromptSyntax(prompt: UserPrompt): string {
   const typeKeyword = VALUE_TYPE_TO_SYNTAX[prompt.valueType] || 'text';
   let formatPart = '';
 
-  if (prompt.valueType === 'date') {
+  if (prompt.valueType === 'list' || prompt.valueType === 'multilist') {
+    // List types: options are comma-separated
+    if (prompt.listConfig?.options && prompt.listConfig.options.length > 0) {
+      formatPart = `:${prompt.listConfig.options.join(',')}`;
+    }
+  } else if (prompt.valueType === 'date') {
     const outputFormat = prompt.dateConfig?.outputFormat;
     if (outputFormat === 'custom' && prompt.dateConfig?.customFormat) {
       formatPart = `:format(${prompt.dateConfig.customFormat})`;

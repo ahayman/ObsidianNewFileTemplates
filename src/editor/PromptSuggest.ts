@@ -289,6 +289,20 @@ export class PromptSuggest extends EditorSuggest<PromptSuggestion> {
         description: "Date and time picker",
         insertText: " Name:datetime %}",
       },
+      {
+        label: "{% Name:list:... %}",
+        type: "syntax",
+        description: "Single selection dropdown",
+        insertText: " Name:list:",
+        example: "Opt1,Opt2,Opt3",
+      },
+      {
+        label: "{% Name:multilist:... %}",
+        type: "syntax",
+        description: "Multi-selection dropdown",
+        insertText: " Name:multilist:",
+        example: "Opt1,Opt2,Opt3",
+      },
     ];
   }
 
@@ -332,6 +346,20 @@ export class PromptSuggest extends EditorSuggest<PromptSuggestion> {
         type: "syntax",
         description: "DateTime picker (add format after)",
         insertText: ":datetime:",
+      },
+      {
+        label: ":list",
+        type: "syntax",
+        description: "Single selection dropdown (add options after)",
+        insertText: ":list:",
+        example: "Opt1,Opt2",
+      },
+      {
+        label: ":multilist",
+        type: "syntax",
+        description: "Multi-selection dropdown (add options after)",
+        insertText: ":multilist:",
+        example: "Opt1,Opt2",
       },
     ];
 
@@ -378,6 +406,20 @@ export class PromptSuggest extends EditorSuggest<PromptSuggestion> {
         type: "valueType",
         description: "Date and time picker (continue typing : for format)",
         insertText: "datetime:",
+      },
+      {
+        label: "list",
+        type: "valueType",
+        description: "Single selection dropdown (add comma-separated options)",
+        insertText: "list:",
+        example: "Opt1,Opt2,Opt3 %}",
+      },
+      {
+        label: "multilist",
+        type: "valueType",
+        description: "Multi-selection dropdown (add comma-separated options)",
+        insertText: "multilist:",
+        example: "Opt1,Opt2,Opt3 %}",
       },
     ];
 

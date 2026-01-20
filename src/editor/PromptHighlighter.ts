@@ -28,6 +28,8 @@ const formatDecoration = Decoration.mark({ class: "cm-prompt-format" });
 const formatWrapperDecoration = Decoration.mark({ class: "cm-format-wrapper" });
 const formatTokenDecoration = Decoration.mark({ class: "cm-format-token" });
 const formatLiteralDecoration = Decoration.mark({ class: "cm-format-literal" });
+const listOptionDecoration = Decoration.mark({ class: "cm-prompt-list-option" });
+const listCommaDecoration = Decoration.mark({ class: "cm-prompt-list-comma" });
 
 /**
  * Pattern to match fenced code blocks
@@ -107,6 +109,14 @@ export interface FormatTokenPos {
 }
 
 /**
+ * Represents a parsed list option position
+ */
+export interface ListOptionPos {
+  start: number;
+  end: number;
+}
+
+/**
  * Parse prompt content to identify parts (name, type, format)
  * @internal Exported for testing
  */
@@ -119,6 +129,9 @@ export interface PromptParts {
   formatTokens?: FormatTokenPos[];
   /** Positions for format( and ) wrapper */
   formatWrapper?: { funcStart: number; funcEnd: number; parenClose: number };
+  /** If type is list/multilist, contains parsed option positions and comma positions */
+  listOptions?: ListOptionPos[];
+  listCommas?: Array<{ pos: number }>;
 }
 
 /**
@@ -209,15 +222,51 @@ export function parsePromptContent(content: string, contentStart: number): Promp
     };
   } else {
     // Name:type:format
+    const typeStr = afterFirstColon.substring(0, secondColon).toLowerCase();
     parts.type = {
       start: absoluteStart + firstColon + 1,
       end: absoluteStart + firstColon + 1 + secondColon,
     };
     colons.push({ pos: absoluteStart + firstColon + 1 + secondColon });
+
+    const formatStart = absoluteStart + firstColon + 1 + secondColon + 1;
+    const formatStr = trimmedContent.substring(firstColon + 1 + secondColon + 1);
+
     parts.format = {
-      start: absoluteStart + firstColon + 1 + secondColon + 1,
+      start: formatStart,
       end: absoluteStart + trimmedContent.length,
     };
+
+    // Check if this is a list/multilist type - parse comma-separated options
+    if (typeStr === 'list' || typeStr === 'multilist') {
+      const listOptions: ListOptionPos[] = [];
+      const listCommas: Array<{ pos: number }> = [];
+
+      let currentPos = formatStart;
+      let optionStart = currentPos;
+
+      for (let i = 0; i < formatStr.length; i++) {
+        if (formatStr[i] === ',') {
+          // End of current option
+          if (currentPos > optionStart) {
+            listOptions.push({ start: optionStart, end: currentPos });
+          }
+          listCommas.push({ pos: currentPos });
+          currentPos++;
+          optionStart = currentPos;
+        } else {
+          currentPos++;
+        }
+      }
+
+      // Don't forget the last option
+      if (currentPos > optionStart) {
+        listOptions.push({ start: optionStart, end: currentPos });
+      }
+
+      parts.listOptions = listOptions;
+      parts.listCommas = listCommas;
+    }
   }
 
   return parts;
@@ -320,6 +369,22 @@ function buildDecorations(view: EditorView): DecorationSet {
             to: parts.formatWrapper.parenClose + 1,
             decoration: formatWrapperDecoration,
           });
+        } else if (parts.listOptions && parts.listCommas) {
+          // List/multilist type - decorate options and commas separately
+          for (const option of parts.listOptions) {
+            decorations.push({
+              from: option.start,
+              to: option.end,
+              decoration: listOptionDecoration,
+            });
+          }
+          for (const comma of parts.listCommas) {
+            decorations.push({
+              from: comma.pos,
+              to: comma.pos + 1,
+              decoration: listCommaDecoration,
+            });
+          }
         } else {
           // Regular format (preset like ISO, compact, etc.)
           decorations.push({ from: parts.format.start, to: parts.format.end, decoration: formatDecoration });

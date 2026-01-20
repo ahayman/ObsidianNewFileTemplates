@@ -301,6 +301,122 @@ describe("PromptHighlighter", () => {
         expect(parts.name.start).toBe(parts.name.end); // Empty range
       });
     });
+
+    describe("list/multilist syntax", () => {
+      it("should parse list with options", () => {
+        const parts = parsePromptContent("Priority:list:High,Medium,Low", 0);
+
+        expect(parts.name).toEqual({ start: 0, end: 8 });
+        expect(parts.type).toEqual({ start: 9, end: 13 });
+        expect(parts.format).toEqual({ start: 14, end: 29 });
+        expect(parts.colons.length).toBe(2);
+      });
+
+      it("should parse multilist with options", () => {
+        const parts = parsePromptContent("Tags:multilist:Work,Personal,Urgent", 0);
+
+        expect(parts.name).toEqual({ start: 0, end: 4 });
+        expect(parts.type).toEqual({ start: 5, end: 14 });
+        expect(parts.format).toEqual({ start: 15, end: 35 });
+      });
+
+      it("should include listOptions positions for list type", () => {
+        const parts = parsePromptContent("Status:list:Open,Closed,Pending", 0);
+
+        expect(parts.listOptions).toBeDefined();
+        expect(parts.listOptions?.length).toBe(3);
+
+        // First option: "Open" at position 12-16
+        expect(parts.listOptions?.[0]).toEqual({ start: 12, end: 16 });
+        // Second option: "Closed" at position 17-23
+        expect(parts.listOptions?.[1]).toEqual({ start: 17, end: 23 });
+        // Third option: "Pending" at position 24-31
+        expect(parts.listOptions?.[2]).toEqual({ start: 24, end: 31 });
+      });
+
+      it("should include listCommas positions for list type", () => {
+        const parts = parsePromptContent("Status:list:Open,Closed,Pending", 0);
+
+        expect(parts.listCommas).toBeDefined();
+        expect(parts.listCommas?.length).toBe(2);
+
+        // First comma after "Open" at position 16
+        expect(parts.listCommas?.[0]).toEqual({ pos: 16 });
+        // Second comma after "Closed" at position 23
+        expect(parts.listCommas?.[1]).toEqual({ pos: 23 });
+      });
+
+      it("should include listOptions positions for multilist type", () => {
+        const parts = parsePromptContent("Colors:multilist:Red,Blue,Green", 0);
+
+        expect(parts.listOptions).toBeDefined();
+        expect(parts.listOptions?.length).toBe(3);
+
+        // Options start after "Colors:multilist:" (17 chars)
+        expect(parts.listOptions?.[0]).toEqual({ start: 17, end: 20 }); // Red
+        expect(parts.listOptions?.[1]).toEqual({ start: 21, end: 25 }); // Blue
+        expect(parts.listOptions?.[2]).toEqual({ start: 26, end: 31 }); // Green
+      });
+
+      it("should handle list with two options", () => {
+        const parts = parsePromptContent("YesNo:list:Yes,No", 0);
+
+        expect(parts.listOptions?.length).toBe(2);
+        expect(parts.listCommas?.length).toBe(1);
+      });
+
+      it("should handle list with single option", () => {
+        const parts = parsePromptContent("Single:list:OnlyOption", 0);
+
+        expect(parts.listOptions?.length).toBe(1);
+        expect(parts.listOptions?.[0]).toEqual({ start: 12, end: 22 });
+        expect(parts.listCommas?.length).toBe(0);
+      });
+
+      it("should handle contentStart offset for list", () => {
+        const parts = parsePromptContent("Type:list:A,B,C", 10);
+
+        expect(parts.name).toEqual({ start: 10, end: 14 });
+        expect(parts.type).toEqual({ start: 15, end: 19 });
+
+        // List options with offset
+        expect(parts.listOptions?.[0]).toEqual({ start: 20, end: 21 }); // A
+        expect(parts.listOptions?.[1]).toEqual({ start: 22, end: 23 }); // B
+        expect(parts.listOptions?.[2]).toEqual({ start: 24, end: 25 }); // C
+
+        // Commas with offset
+        expect(parts.listCommas?.[0]).toEqual({ pos: 21 });
+        expect(parts.listCommas?.[1]).toEqual({ pos: 23 });
+      });
+
+      it("should not include listOptions for non-list types", () => {
+        const parts = parsePromptContent("Name:text", 0);
+
+        expect(parts.listOptions).toBeUndefined();
+        expect(parts.listCommas).toBeUndefined();
+      });
+
+      it("should not include listOptions for date type with format", () => {
+        const parts = parsePromptContent("Date:date:ISO", 0);
+
+        expect(parts.listOptions).toBeUndefined();
+        expect(parts.listCommas).toBeUndefined();
+      });
+
+      it("should handle list type case-insensitively", () => {
+        const parts = parsePromptContent("Field:LIST:A,B", 0);
+
+        expect(parts.listOptions).toBeDefined();
+        expect(parts.listOptions?.length).toBe(2);
+      });
+
+      it("should handle multilist type case-insensitively", () => {
+        const parts = parsePromptContent("Field:MULTILIST:A,B", 0);
+
+        expect(parts.listOptions).toBeDefined();
+        expect(parts.listOptions?.length).toBe(2);
+      });
+    });
   });
 
   describe("integration: prompt pattern matching", () => {
@@ -381,6 +497,24 @@ describe("PromptHighlighter", () => {
       const match = PROMPT_PATTERN.exec(text);
 
       expect(match).toBeNull();
+    });
+
+    it("should match list prompt", () => {
+      const text = "{% Priority:list:High,Medium,Low %}";
+      PROMPT_PATTERN.lastIndex = 0;
+      const match = PROMPT_PATTERN.exec(text);
+
+      expect(match).not.toBeNull();
+      expect(match![2]).toBe(" Priority:list:High,Medium,Low");
+    });
+
+    it("should match multilist prompt", () => {
+      const text = "{% Tags:multilist:Work,Personal,Urgent %}";
+      PROMPT_PATTERN.lastIndex = 0;
+      const match = PROMPT_PATTERN.exec(text);
+
+      expect(match).not.toBeNull();
+      expect(match![2]).toBe(" Tags:multilist:Work,Personal,Urgent");
     });
   });
 });

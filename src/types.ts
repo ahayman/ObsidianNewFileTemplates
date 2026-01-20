@@ -11,7 +11,7 @@ export interface UserPrompt {
   /** Display name shown to user when prompting for value */
   name: string;
   /** Type of value expected */
-  valueType: 'text' | 'numeric' | 'date' | 'time' | 'datetime';
+  valueType: 'text' | 'numeric' | 'date' | 'time' | 'datetime' | 'list' | 'multilist';
   /** Optional configuration for date prompts */
   dateConfig?: {
     /** Output format for date value inserted into filename */
@@ -25,6 +25,11 @@ export interface UserPrompt {
     outputFormat?: TimeOutputFormat;
     /** Custom format string when outputFormat is 'custom' */
     customFormat?: string;
+  };
+  /** Optional configuration for list prompts */
+  listConfig?: {
+    /** Available options for the list */
+    options: string[];
   };
   /** Whether this prompt is optional (empty values allowed) */
   isOptional?: boolean;
@@ -78,7 +83,7 @@ export const TIME_FORMAT_PRESETS: Record<string, TimeOutputFormat> = {
 /**
  * Value types for prompts that can be specified in syntax
  */
-export type PromptValueType = 'text' | 'numeric' | 'date' | 'time' | 'datetime';
+export type PromptValueType = 'text' | 'numeric' | 'date' | 'time' | 'datetime' | 'list' | 'multilist';
 
 /**
  * Maps syntax type names to internal value types
@@ -90,6 +95,8 @@ export const VALUE_TYPE_ALIASES: Record<string, PromptValueType> = {
   'date': 'date',
   'time': 'time',
   'datetime': 'datetime',
+  'list': 'list',
+  'multilist': 'multilist',
 };
 
 /**
@@ -107,6 +114,8 @@ export interface ParsedPromptSyntax {
   timeFormat?: TimeOutputFormat;
   /** Custom format string (when using format(...) syntax) */
   customFormat?: string;
+  /** List options (for list/multilist types) */
+  listOptions?: string[];
   /** Whether this prompt is optional (empty values allowed) */
   isOptional?: boolean;
 }

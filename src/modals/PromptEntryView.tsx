@@ -31,7 +31,7 @@ import {
   parseTime,
   parseDateTime,
 } from "../utils/dateTimeUtils";
-import { DatePicker, TimePicker, DateTimePicker, CollapsiblePicker } from "../components/pickers";
+import { DatePicker, TimePicker, DateTimePicker, CollapsiblePicker, ListPicker, MultiListPicker } from "../components/pickers";
 
 interface PromptEntryViewProps {
   template: TitleTemplate;
@@ -166,6 +166,12 @@ export function PromptEntryView({
         }
         return value;
       }
+      case "list":
+        // Single list selection - return as-is
+        return value;
+      case "multilist":
+        // Multilist - value is already stored as comma-separated string
+        return value;
       default:
         return value;
     }
@@ -329,6 +335,8 @@ export function PromptEntryView({
       date: "date",
       time: "time",
       datetime: "date & time",
+      list: "list",
+      multilist: "multi-select",
     }[prompt.valueType];
 
     return (
@@ -394,6 +402,22 @@ export function PromptEntryView({
               autoFocus={globalIndex === 0}
             />
           </CollapsiblePicker>
+        ) : prompt.valueType === "list" ? (
+          <ListPicker
+            value={value}
+            options={prompt.listConfig?.options ?? []}
+            onChange={(newValue) => handleValueChange(prompt.id, newValue)}
+            onClear={() => handleValueChange(prompt.id, "")}
+            placeholder="Select an option..."
+          />
+        ) : prompt.valueType === "multilist" ? (
+          <MultiListPicker
+            values={value ? value.split(', ').filter(v => v.length > 0) : []}
+            options={prompt.listConfig?.options ?? []}
+            onChange={(newValues) => handleValueChange(prompt.id, newValues.join(', '))}
+            onClear={() => handleValueChange(prompt.id, "")}
+            placeholder="Select options..."
+          />
         ) : (
           <input
             id={`prompt-${prompt.id}`}

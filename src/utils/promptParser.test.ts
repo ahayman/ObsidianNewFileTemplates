@@ -110,6 +110,49 @@ describe("promptParser", () => {
         expect(result.valueType).toBe("text");
       });
     });
+
+    describe("list syntax", () => {
+      it("should parse list type with options", () => {
+        const result = parsePromptSyntax("Priority:list:Low,Medium,High");
+        expect(result.name).toBe("Priority");
+        expect(result.valueType).toBe("list");
+        expect(result.listOptions).toEqual(["Low", "Medium", "High"]);
+      });
+
+      it("should parse multilist type with options", () => {
+        const result = parsePromptSyntax("Tags:multilist:Work,Personal,Important");
+        expect(result.name).toBe("Tags");
+        expect(result.valueType).toBe("multilist");
+        expect(result.listOptions).toEqual(["Work", "Personal", "Important"]);
+      });
+
+      it("should trim whitespace from list options", () => {
+        const result = parsePromptSyntax("Status:list:  Open , In Progress , Closed  ");
+        expect(result.listOptions).toEqual(["Open", "In Progress", "Closed"]);
+      });
+
+      it("should filter out empty options", () => {
+        const result = parsePromptSyntax("Status:list:Open,,Closed,");
+        expect(result.listOptions).toEqual(["Open", "Closed"]);
+      });
+
+      it("should parse optional list", () => {
+        const result = parsePromptSyntax("Priority:list:Low,Medium,High", true);
+        expect(result.valueType).toBe("list");
+        expect(result.isOptional).toBe(true);
+        expect(result.listOptions).toEqual(["Low", "Medium", "High"]);
+      });
+
+      it("should be case-insensitive for list type", () => {
+        const result = parsePromptSyntax("Field:LIST:A,B,C");
+        expect(result.valueType).toBe("list");
+      });
+
+      it("should be case-insensitive for multilist type", () => {
+        const result = parsePromptSyntax("Field:MULTILIST:A,B,C");
+        expect(result.valueType).toBe("multilist");
+      });
+    });
   });
 
   describe("getPromptName", () => {
@@ -174,6 +217,30 @@ describe("promptParser", () => {
     it("should deduplicate prompts by name", () => {
       const prompts = extractPrompts("{% Name %}-{% Name %}");
       expect(prompts).toHaveLength(1);
+    });
+
+    it("should extract list prompts with options", () => {
+      const prompts = extractPrompts("{% Priority:list:Low,Medium,High %}");
+      expect(prompts).toHaveLength(1);
+      expect(prompts[0].name).toBe("Priority");
+      expect(prompts[0].valueType).toBe("list");
+      expect(prompts[0].listConfig?.options).toEqual(["Low", "Medium", "High"]);
+    });
+
+    it("should extract multilist prompts with options", () => {
+      const prompts = extractPrompts("{% Tags:multilist:Work,Personal,Important %}");
+      expect(prompts).toHaveLength(1);
+      expect(prompts[0].name).toBe("Tags");
+      expect(prompts[0].valueType).toBe("multilist");
+      expect(prompts[0].listConfig?.options).toEqual(["Work", "Personal", "Important"]);
+    });
+
+    it("should extract optional list prompts", () => {
+      const prompts = extractPrompts("{%? Priority:list:Low,Medium,High ?%}");
+      expect(prompts).toHaveLength(1);
+      expect(prompts[0].isOptional).toBe(true);
+      expect(prompts[0].valueType).toBe("list");
+      expect(prompts[0].listConfig?.options).toEqual(["Low", "Medium", "High"]);
     });
 
   });
@@ -364,6 +431,87 @@ describe("promptParser", () => {
         const result = validatePromptValue("abc", optionalNumeric);
         expect(result.valid).toBe(false);
         expect(result.error).toBe("Value must be a number");
+      });
+    });
+
+    describe("list prompts", () => {
+      const listPrompt: UserPrompt = {
+        id: "1",
+        name: "Priority",
+        valueType: "list",
+        listConfig: { options: ["Low", "Medium", "High"] },
+      };
+
+      it("should pass for valid list option", () => {
+        expect(validatePromptValue("Low", listPrompt).valid).toBe(true);
+        expect(validatePromptValue("Medium", listPrompt).valid).toBe(true);
+        expect(validatePromptValue("High", listPrompt).valid).toBe(true);
+      });
+
+      it("should fail for invalid list option", () => {
+        const result = validatePromptValue("Invalid", listPrompt);
+        expect(result.valid).toBe(false);
+        expect(result.error).toBe("Value must be one of the available options");
+      });
+
+      it("should fail for empty value on required list", () => {
+        const result = validatePromptValue("", listPrompt);
+        expect(result.valid).toBe(false);
+        expect(result.error).toBe("Value cannot be empty");
+      });
+
+      it("should pass for empty value on optional list", () => {
+        const optionalListPrompt: UserPrompt = {
+          ...listPrompt,
+          isOptional: true,
+        };
+        const result = validatePromptValue("", optionalListPrompt);
+        expect(result.valid).toBe(true);
+      });
+    });
+
+    describe("multilist prompts", () => {
+      const multilistPrompt: UserPrompt = {
+        id: "1",
+        name: "Tags",
+        valueType: "multilist",
+        listConfig: { options: ["Work", "Personal", "Important"] },
+      };
+
+      it("should pass for single valid option", () => {
+        const result = validatePromptValue("Work", multilistPrompt);
+        expect(result.valid).toBe(true);
+      });
+
+      it("should pass for multiple valid options", () => {
+        const result = validatePromptValue("Work, Personal", multilistPrompt);
+        expect(result.valid).toBe(true);
+      });
+
+      it("should pass for all options selected", () => {
+        const result = validatePromptValue("Work, Personal, Important", multilistPrompt);
+        expect(result.valid).toBe(true);
+      });
+
+      it("should fail if any option is invalid", () => {
+        const result = validatePromptValue("Work, Invalid", multilistPrompt);
+        expect(result.valid).toBe(false);
+        expect(result.error).toContain("Invalid");
+        expect(result.error).toContain("not a valid option");
+      });
+
+      it("should fail for empty value on required multilist", () => {
+        const result = validatePromptValue("", multilistPrompt);
+        expect(result.valid).toBe(false);
+      });
+
+      it("should pass for empty value on optional multilist", () => {
+        const optionalMultilistPrompt: UserPrompt = {
+          ...multilistPrompt,
+          isOptional: true,
+        };
+        const result = validatePromptValue("", optionalMultilistPrompt);
+        expect(result.valid).toBe(true);
       });
     });
   });
@@ -579,6 +727,80 @@ describe("promptParser", () => {
       expect(extracted[0].name).toBe("Date");
       expect(extracted[0].valueType).toBe("date");
       expect(extracted[0].dateConfig?.outputFormat).toBe("MM-DD-YYYY");
+    });
+
+    it("should create list prompt syntax", () => {
+      const prompt: UserPrompt = {
+        id: "1",
+        name: "Priority",
+        valueType: "list",
+        listConfig: { options: ["Low", "Medium", "High"] },
+      };
+      expect(createFullPromptSyntax(prompt)).toBe("{% Priority:list:Low,Medium,High %}");
+    });
+
+    it("should create multilist prompt syntax", () => {
+      const prompt: UserPrompt = {
+        id: "1",
+        name: "Tags",
+        valueType: "multilist",
+        listConfig: { options: ["Work", "Personal", "Important"] },
+      };
+      expect(createFullPromptSyntax(prompt)).toBe("{% Tags:multilist:Work,Personal,Important %}");
+    });
+
+    it("should create optional list prompt syntax", () => {
+      const prompt: UserPrompt = {
+        id: "1",
+        name: "Priority",
+        valueType: "list",
+        listConfig: { options: ["Low", "High"] },
+        isOptional: true,
+      };
+      expect(createFullPromptSyntax(prompt)).toBe("{%? Priority:list:Low,High ?%}");
+    });
+
+    it("should handle list without options (edge case)", () => {
+      const prompt: UserPrompt = {
+        id: "1",
+        name: "Empty",
+        valueType: "list",
+        listConfig: { options: [] },
+      };
+      // Should output just the type without colon when no options
+      expect(createFullPromptSyntax(prompt)).toBe("{% Empty:list %}");
+    });
+
+    it("should roundtrip list prompt through extractPrompts", () => {
+      const original: UserPrompt = {
+        id: "1",
+        name: "Status",
+        valueType: "list",
+        listConfig: { options: ["Open", "Closed"] },
+      };
+      const syntax = createFullPromptSyntax(original);
+      expect(syntax).toBe("{% Status:list:Open,Closed %}");
+      const extracted = extractPrompts(syntax);
+      expect(extracted).toHaveLength(1);
+      expect(extracted[0].name).toBe("Status");
+      expect(extracted[0].valueType).toBe("list");
+      expect(extracted[0].listConfig?.options).toEqual(["Open", "Closed"]);
+    });
+
+    it("should roundtrip multilist prompt through extractPrompts", () => {
+      const original: UserPrompt = {
+        id: "1",
+        name: "Categories",
+        valueType: "multilist",
+        listConfig: { options: ["A", "B", "C"] },
+      };
+      const syntax = createFullPromptSyntax(original);
+      expect(syntax).toBe("{% Categories:multilist:A,B,C %}");
+      const extracted = extractPrompts(syntax);
+      expect(extracted).toHaveLength(1);
+      expect(extracted[0].name).toBe("Categories");
+      expect(extracted[0].valueType).toBe("multilist");
+      expect(extracted[0].listConfig?.options).toEqual(["A", "B", "C"]);
     });
   });
 
