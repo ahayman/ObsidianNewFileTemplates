@@ -179,6 +179,8 @@ export function DatePicker({ value, onChange, minDate, maxDate, autoFocus = fals
         onDateSelect={handleDateSelect}
         onPrevMonth={handlePrevMonth}
         onNextMonth={handleNextMonth}
+        onPrevYear={handlePrevYear}
+        onNextYear={handleNextYear}
         autoFocus={autoFocus}
       />
 

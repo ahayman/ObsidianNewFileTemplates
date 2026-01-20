@@ -11,6 +11,8 @@ import {
   isSameDay,
   isToday,
   DAY_NAMES_SHORT,
+  getPreviousMonth,
+  getNextMonth,
 } from "../../utils/dateTimeUtils";
 
 interface CalendarGridProps {
@@ -26,6 +28,10 @@ interface CalendarGridProps {
   onPrevMonth?: () => void;
   /** Called when focus should move to next month */
   onNextMonth?: () => void;
+  /** Called when focus should move to previous year */
+  onPrevYear?: () => void;
+  /** Called when focus should move to next year */
+  onNextYear?: () => void;
   /** Whether to auto-focus on mount (default: false) */
   autoFocus?: boolean;
 }
@@ -37,6 +43,8 @@ export function CalendarGrid({
   onDateSelect,
   onPrevMonth,
   onNextMonth,
+  onPrevYear,
+  onNextYear,
   autoFocus = false,
 }: CalendarGridProps) {
   const gridRef = useRef<HTMLDivElement>(null);
@@ -61,31 +69,102 @@ export function CalendarGrid({
     [onDateSelect]
   );
 
+  // Find which row a date falls in within the displayed grid
+  const getDateRowIndex = useCallback(
+    (date: Date): number => {
+      for (let row = 0; row < grid.length; row++) {
+        for (const gridDate of grid[row]) {
+          if (isSameDay(gridDate, date)) {
+            return row;
+          }
+        }
+      }
+      return -1; // Date not in grid
+    },
+    [grid]
+  );
+
   // Handle keyboard navigation
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent, date: Date) => {
       let newDate: Date | null = null;
+      let navigated = false;
+
+      const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+      const rowIndex = getDateRowIndex(date);
+      const isLeftEdge = dayOfWeek === 0; // Sunday
+      const isRightEdge = dayOfWeek === 6; // Saturday
+      const isTopRow = rowIndex === 0;
+      const isBottomRow = rowIndex === grid.length - 1;
 
       switch (e.key) {
         case "ArrowLeft":
           e.preventDefault();
-          newDate = new Date(date);
-          newDate.setDate(date.getDate() - 1);
+          if (isLeftEdge) {
+            // At left edge (Sunday) - go to previous month
+            if (onPrevMonth) {
+              onPrevMonth();
+              navigated = true;
+              // Focus Saturday (column 6) at the same row in the new grid
+              const { month: newMonth, year: newYear } = getPreviousMonth(month, year);
+              const newGrid = generateCalendarGrid(newMonth, newYear);
+              newDate = newGrid[rowIndex][6]; // Same row, Saturday
+            }
+          } else {
+            newDate = new Date(date);
+            newDate.setDate(date.getDate() - 1);
+          }
           break;
         case "ArrowRight":
           e.preventDefault();
-          newDate = new Date(date);
-          newDate.setDate(date.getDate() + 1);
+          if (isRightEdge) {
+            // At right edge (Saturday) - go to next month
+            if (onNextMonth) {
+              onNextMonth();
+              navigated = true;
+              // Focus Sunday (column 0) at the same row in the new grid
+              const { month: newMonth, year: newYear } = getNextMonth(month, year);
+              const newGrid = generateCalendarGrid(newMonth, newYear);
+              newDate = newGrid[rowIndex][0]; // Same row, Sunday
+            }
+          } else {
+            newDate = new Date(date);
+            newDate.setDate(date.getDate() + 1);
+          }
           break;
         case "ArrowUp":
           e.preventDefault();
-          newDate = new Date(date);
-          newDate.setDate(date.getDate() - 7);
+          if (isTopRow) {
+            // At top row - go to previous year (same month)
+            if (onPrevYear) {
+              onPrevYear();
+              navigated = true;
+              // Focus bottom row at the same column (day of week) in the new grid
+              const dayOfWeek = date.getDay();
+              const newGrid = generateCalendarGrid(month, year - 1);
+              newDate = newGrid[newGrid.length - 1][dayOfWeek]; // Bottom row, same column
+            }
+          } else {
+            newDate = new Date(date);
+            newDate.setDate(date.getDate() - 7);
+          }
           break;
         case "ArrowDown":
           e.preventDefault();
-          newDate = new Date(date);
-          newDate.setDate(date.getDate() + 7);
+          if (isBottomRow) {
+            // At bottom row - go to next year (same month)
+            if (onNextYear) {
+              onNextYear();
+              navigated = true;
+              // Focus top row at the same column (day of week) in the new grid
+              const dayOfWeek = date.getDay();
+              const newGrid = generateCalendarGrid(month, year + 1);
+              newDate = newGrid[0][dayOfWeek]; // Top row, same column
+            }
+          } else {
+            newDate = new Date(date);
+            newDate.setDate(date.getDate() + 7);
+          }
           break;
         case "Enter":
         case " ":
@@ -102,18 +181,33 @@ export function CalendarGrid({
           break;
         case "PageUp":
           e.preventDefault();
-          if (onPrevMonth) onPrevMonth();
+          if (e.shiftKey && onPrevYear) {
+            onPrevYear();
+          } else if (onPrevMonth) {
+            onPrevMonth();
+          }
           return;
         case "PageDown":
           e.preventDefault();
-          if (onNextMonth) onNextMonth();
+          if (e.shiftKey && onNextYear) {
+            onNextYear();
+          } else if (onNextMonth) {
+            onNextMonth();
+          }
           return;
       }
 
       if (newDate) {
         focusedDateRef.current = newDate;
-        // If new date is outside current month, trigger navigation
-        if (newDate.getMonth() + 1 !== month || newDate.getFullYear() !== year) {
+
+        // Check if the new date is visible in the current grid (including greyed-out days)
+        const isInCurrentGrid = grid.some(week =>
+          week.some(gridDate => isSameDay(gridDate, newDate!))
+        );
+
+        // Only trigger navigation if we haven't already navigated AND the date is NOT in the current grid
+        // This allows focusing greyed-out days from prev/next month without changing the view
+        if (!navigated && !isInCurrentGrid) {
           if (newDate < new Date(year, month - 1, 1)) {
             if (onPrevMonth) onPrevMonth();
           } else {
@@ -130,7 +224,49 @@ export function CalendarGrid({
         });
       }
     },
-    [month, year, onDateSelect, onPrevMonth, onNextMonth]
+    [month, year, grid, getDateRowIndex, onDateSelect, onPrevMonth, onNextMonth, onPrevYear, onNextYear]
+  );
+
+  // Handle keyboard navigation when the grid container is focused (no specific cell)
+  const handleGridKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      // Only handle arrow keys when the grid container itself is focused
+      if (e.target !== gridRef.current) return;
+
+      const arrowKeys = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
+      if (!arrowKeys.includes(e.key)) return;
+
+      e.preventDefault();
+
+      // Determine starting date: use selected date, focused date, or today
+      const startDate = selectedDate || focusedDateRef.current || new Date();
+
+      // Focus the appropriate cell based on the starting date
+      // If the starting date is in the current month, focus it
+      // Otherwise, focus the first day of the current month
+      let targetDate: Date;
+      if (startDate.getMonth() + 1 === month && startDate.getFullYear() === year) {
+        targetDate = startDate;
+      } else {
+        // Focus first day of current month
+        targetDate = new Date(year, month - 1, 1);
+      }
+
+      const dateStr = targetDate.toISOString().split("T")[0];
+      const cell = gridRef.current?.querySelector(
+        `[data-date="${dateStr}"]`
+      ) as HTMLElement;
+
+      if (cell) {
+        cell.focus();
+        // After focusing, dispatch the same key event to trigger navigation
+        // Use a small delay to ensure focus is set first
+        requestAnimationFrame(() => {
+          handleKeyDown(e, targetDate);
+        });
+      }
+    },
+    [selectedDate, month, year, handleKeyDown]
   );
 
   // Focus selected date on mount only if autoFocus is true
@@ -149,7 +285,14 @@ export function CalendarGrid({
   }, [autoFocus]);
 
   return (
-    <div className="date-picker-grid-container" ref={gridRef} role="grid" aria-label="Calendar">
+    <div
+      className="date-picker-grid-container"
+      ref={gridRef}
+      role="grid"
+      aria-label="Calendar"
+      tabIndex={0}
+      onKeyDown={handleGridKeyDown}
+    >
       {/* Day headers */}
       <div className="date-picker-day-headers" role="row">
         {DAY_NAMES_SHORT.map((day, index) => (

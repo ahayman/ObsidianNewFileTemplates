@@ -62,6 +62,8 @@ export function DateTimePicker({
     const minutes = String(initialDateTime.getMinutes()).padStart(2, "0");
     return `${hours}:${minutes}`;
   });
+  // Key to force DatePicker remount when "Now" is clicked (ensures display updates)
+  const [datePickerKey, setDatePickerKey] = useState(0);
 
   // Update internal state when value prop changes
   useEffect(() => {
@@ -131,6 +133,8 @@ export function DateTimePicker({
     setDateValue(newDate);
     setTimeValue(newTime);
     emitChange(newDate, newTime);
+    // Force DatePicker to remount and show the current date's month
+    setDatePickerKey((k) => k + 1);
   }, [emitChange]);
 
   return (
@@ -174,7 +178,7 @@ export function DateTimePicker({
           role="tabpanel"
           hidden={activeTab !== "date"}
         >
-          <DatePicker value={dateValue} onChange={handleDateChange} autoFocus={autoFocus} />
+          <DatePicker key={datePickerKey} value={dateValue} onChange={handleDateChange} autoFocus={autoFocus} />
         </div>
 
         <div
