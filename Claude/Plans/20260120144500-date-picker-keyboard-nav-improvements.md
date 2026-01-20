@@ -57,6 +57,13 @@ When tabbing into a Date field, arrow keys should work immediately without needi
   - Right from Saturday → focus Sunday of next month at same row
 - [x] Use `generateCalendarGrid()` to calculate the target cell in the new view
 
+### Phase 6: Alt+Arrow Key Navigation
+- [x] Alt+Left: Jump to previous month, same grid position (row, column)
+- [x] Alt+Right: Jump to next month, same grid position (row, column)
+- [x] Alt+Up: Jump to previous year, same grid position (row, column)
+- [x] Alt+Down: Jump to next year, same grid position (row, column)
+- [x] Swipe gestures already work for mobile (horizontal = months, vertical = years)
+
 ## Files to Modify
 1. `src/components/pickers/CalendarGrid.tsx` - Main keyboard navigation logic
 2. `src/components/pickers/DatePicker.tsx` - Pass year navigation handlers
