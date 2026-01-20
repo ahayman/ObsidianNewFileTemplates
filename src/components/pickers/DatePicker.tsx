@@ -26,6 +26,10 @@ interface DatePickerProps {
   maxDate?: string;
   /** Whether to auto-focus on mount (default: false) */
   autoFocus?: boolean;
+  /** Whether the field is optional - shows clear button when true */
+  optional?: boolean;
+  /** Called when clear button is clicked */
+  onClear?: () => void;
 }
 
 // Minimum swipe distance in pixels to trigger navigation
@@ -33,7 +37,7 @@ const SWIPE_THRESHOLD = 50;
 // Maximum vertical distance for horizontal swipe detection
 const SWIPE_VERTICAL_THRESHOLD = 100;
 
-export function DatePicker({ value, onChange, minDate, maxDate, autoFocus = false }: DatePickerProps) {
+export function DatePicker({ value, onChange, minDate, maxDate, autoFocus = false, optional = false, onClear }: DatePickerProps) {
   // Parse initial date or use today
   const initialDate = value ? parseDate(value) : new Date();
   const [displayMonth, setDisplayMonth] = useState(
@@ -178,15 +182,27 @@ export function DatePicker({ value, onChange, minDate, maxDate, autoFocus = fals
         autoFocus={autoFocus}
       />
 
-      {/* Today button */}
+      {/* Footer with Today button and optional Clear button */}
       <div className="date-picker-footer">
         <button
           type="button"
           className="date-picker-today-btn"
           onClick={handleTodayClick}
+          tabIndex={-1}
         >
           Today
         </button>
+        {optional && onClear && (
+          <button
+            type="button"
+            className="date-picker-clear-btn"
+            onClick={onClear}
+            title="Clear date"
+            tabIndex={-1}
+          >
+            Clear
+          </button>
+        )}
       </div>
     </div>
   );

@@ -3,11 +3,12 @@
  *
  * Wraps date/time picker components with collapse/expand functionality.
  * Features:
+ * - Single tab stop - TAB enters/exits the field, arrow keys navigate within
  * - Default state: collapsed
  * - Auto-expand on focus (when not manually controlled)
  * - Auto-collapse on blur (when not manually controlled)
  * - Manual expand/collapse toggle button
- * - Manual interaction disables auto behavior
+ * - Escape key collapses and returns focus to header
  */
 
 import { useState, useCallback, useRef } from "react";
@@ -32,13 +33,31 @@ export function CollapsiblePicker({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [isManuallyControlled, setIsManuallyControlled] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
   const blurTimeoutRef = useRef<number | null>(null);
 
-  // Handle manual toggle
-  const handleToggleClick = useCallback(() => {
+  // Track if focus just happened to avoid immediate close on click
+  // (same pattern as ListPicker)
+  const justFocusedRef = useRef(false);
+
+  // Handle manual toggle via the toggle button
+  const handleToggleClick = useCallback((e?: React.MouseEvent) => {
+    e?.stopPropagation(); // Don't trigger header click
     setIsManuallyControlled(true);
     setIsExpanded((prev) => !prev);
   }, []);
+
+  // Handle click on header - expand if collapsed, but respect justFocusedRef
+  const handleHeaderClick = useCallback(() => {
+    if (justFocusedRef.current) {
+      // Focus just expanded it, don't toggle closed
+      justFocusedRef.current = false;
+      return;
+    }
+    if (!isExpanded && !isManuallyControlled) {
+      setIsExpanded(true);
+    }
+  }, [isExpanded, isManuallyControlled]);
 
   // Handle focus on container - auto-expand if not manually controlled
   const handleFocus = useCallback(() => {
@@ -49,6 +68,7 @@ export function CollapsiblePicker({
     }
 
     if (!isManuallyControlled) {
+      justFocusedRef.current = true;
       setIsExpanded(true);
     }
   }, [isManuallyControlled]);
@@ -72,15 +92,50 @@ export function CollapsiblePicker({
     [isManuallyControlled]
   );
 
-  // Handle keyboard on toggle button
-  const handleToggleKeyDown = useCallback(
+  // Handle keyboard navigation on header
+  const handleHeaderKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        handleToggleClick();
+      switch (e.key) {
+        case "Enter":
+        case " ":
+          e.preventDefault();
+          if (!isExpanded) {
+            setIsExpanded(true);
+          } else {
+            setIsManuallyControlled(true);
+            setIsExpanded(false);
+          }
+          break;
+        case "Escape":
+          if (isExpanded) {
+            e.preventDefault();
+            setIsManuallyControlled(true);
+            setIsExpanded(false);
+            headerRef.current?.focus();
+          }
+          break;
+        case "ArrowDown":
+          if (!isExpanded) {
+            e.preventDefault();
+            setIsExpanded(true);
+          }
+          break;
       }
     },
-    [handleToggleClick]
+    [isExpanded]
+  );
+
+  // Handle Escape key anywhere in the picker to collapse
+  const handleContainerKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Escape" && isExpanded) {
+        e.preventDefault();
+        setIsManuallyControlled(true);
+        setIsExpanded(false);
+        headerRef.current?.focus();
+      }
+    },
+    [isExpanded]
   );
 
   return (
@@ -89,18 +144,25 @@ export function CollapsiblePicker({
       className={`collapsible-picker ${isExpanded ? "expanded" : "collapsed"}`}
       onFocus={handleFocus}
       onBlur={handleBlur}
+      onKeyDown={handleContainerKeyDown}
     >
-      {/* Header - always visible */}
-      <div className="collapsible-picker-header">
+      {/* Header - single tab stop for the picker */}
+      <div
+        ref={headerRef}
+        className="collapsible-picker-header"
+        onClick={handleHeaderClick}
+        onKeyDown={handleHeaderKeyDown}
+        tabIndex={0}
+        role="button"
+        aria-expanded={isExpanded}
+        aria-label={`${label}: ${previewText}`}
+      >
         <span className="collapsible-picker-label">{label}</span>
         <span className="collapsible-picker-preview">{previewText}</span>
-        <button
-          type="button"
+        <span
           className="collapsible-picker-toggle"
           onClick={handleToggleClick}
-          onKeyDown={handleToggleKeyDown}
-          aria-expanded={isExpanded}
-          aria-label={isExpanded ? "Collapse picker" : "Expand picker"}
+          aria-hidden="true"
         >
           <svg
             className={`collapsible-picker-chevron ${isExpanded ? "rotated" : ""}`}
@@ -118,7 +180,7 @@ export function CollapsiblePicker({
               strokeLinejoin="round"
             />
           </svg>
-        </button>
+        </span>
       </div>
 
       {/* Content - shown when expanded */}

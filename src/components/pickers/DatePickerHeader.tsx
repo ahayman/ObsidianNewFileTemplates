@@ -42,6 +42,7 @@ export function DatePickerHeader({
         onClick={onPrevYear}
         aria-label="Previous year"
         title="Previous year"
+        tabIndex={-1}
       >
         <svg
           viewBox="0 0 24 24"
@@ -63,6 +64,7 @@ export function DatePickerHeader({
         onClick={onPrevMonth}
         aria-label="Previous month"
         title="Previous month"
+        tabIndex={-1}
       >
         <svg
           viewBox="0 0 24 24"
@@ -89,6 +91,7 @@ export function DatePickerHeader({
         onClick={onNextMonth}
         aria-label="Next month"
         title="Next month"
+        tabIndex={-1}
       >
         <svg
           viewBox="0 0 24 24"
@@ -109,6 +112,7 @@ export function DatePickerHeader({
         onClick={onNextYear}
         aria-label="Next year"
         title="Next year"
+        tabIndex={-1}
       >
         <svg
           viewBox="0 0 24 24"

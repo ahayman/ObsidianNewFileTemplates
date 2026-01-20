@@ -184,7 +184,7 @@ export function CalendarGrid({
                   data-date={dateStr}
                   onClick={() => handleDateClick(date)}
                   onKeyDown={(e) => handleKeyDown(e, date)}
-                  tabIndex={isSelected || (!selectedDate && isTodayDate) ? 0 : -1}
+                  tabIndex={-1}
                   role="gridcell"
                   aria-selected={isSelected}
                   aria-label={date.toLocaleDateString(undefined, {

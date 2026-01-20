@@ -13,10 +13,8 @@ import {
   parseDate,
   parseTime,
   formatDate,
-  formatDateTime,
   MONTH_NAMES,
   formatTimeValue,
-  TimeFormat,
 } from "../../utils/dateTimeUtils";
 
 interface DateTimePickerProps {
@@ -24,12 +22,14 @@ interface DateTimePickerProps {
   value: string;
   /** Called when datetime changes */
   onChange: (value: string) => void;
-  /** Initial time format: 12-hour or 24-hour (default: 12h) */
-  timeFormat?: TimeFormat;
   /** Minute step interval (default: 1) */
   minuteStep?: 1 | 5 | 15 | 30;
   /** Whether to auto-focus on mount (default: false) */
   autoFocus?: boolean;
+  /** Whether the field is optional - shows clear button when true */
+  optional?: boolean;
+  /** Called when clear button is clicked */
+  onClear?: () => void;
 }
 
 type TabType = "date" | "time";
@@ -37,12 +37,11 @@ type TabType = "date" | "time";
 export function DateTimePicker({
   value,
   onChange,
-  timeFormat: initialTimeFormat = "12h",
   minuteStep = 1,
   autoFocus = false,
+  optional = false,
+  onClear,
 }: DateTimePickerProps) {
-  // Track current format (user can toggle)
-  const [timeFormat, setTimeFormat] = useState<TimeFormat>(initialTimeFormat);
   // Parse initial value or use now
   const initialDateTime = useMemo(() => {
     if (value) {
@@ -104,7 +103,7 @@ export function DateTimePicker({
     [emitChange, dateValue]
   );
 
-  // Format preview string
+  // Format preview string (always use 12h format for readability)
   const previewString = useMemo(() => {
     const dateParsed = parseDate(dateValue);
     const timeParsed = parseTime(timeValue);
@@ -116,10 +115,10 @@ export function DateTimePicker({
     const monthName = MONTH_NAMES[dateParsed.getMonth()];
     const day = dateParsed.getDate();
     const year = dateParsed.getFullYear();
-    const timeStr = formatTimeValue(timeParsed.hours, timeParsed.minutes, timeFormat);
+    const timeStr = formatTimeValue(timeParsed.hours, timeParsed.minutes, "12h");
 
     return `${monthName} ${day}, ${year} at ${timeStr}`;
-  }, [dateValue, timeValue, timeFormat]);
+  }, [dateValue, timeValue]);
 
   // Handle "Now" button
   const handleNowClick = useCallback(() => {
@@ -150,6 +149,7 @@ export function DateTimePicker({
           role="tab"
           aria-selected={activeTab === "date"}
           aria-controls="datetime-date-panel"
+          tabIndex={-1}
         >
           Date
         </button>
@@ -160,6 +160,7 @@ export function DateTimePicker({
           role="tab"
           aria-selected={activeTab === "time"}
           aria-controls="datetime-time-panel"
+          tabIndex={-1}
         >
           Time
         </button>
@@ -185,29 +186,33 @@ export function DateTimePicker({
           <TimePicker
             value={timeValue}
             onChange={handleTimeChange}
-            format={timeFormat}
             minuteStep={minuteStep}
+            showNowButton={false}
           />
         </div>
       </div>
 
-      {/* Footer with Now button and format toggle */}
+      {/* Footer with Now button and optional Clear button */}
       <div className="datetime-picker-footer">
         <button
           type="button"
           className="datetime-picker-now-btn"
           onClick={handleNowClick}
+          tabIndex={-1}
         >
           Now
         </button>
-        <button
-          type="button"
-          className="datetime-picker-format-toggle"
-          onClick={() => setTimeFormat(timeFormat === "12h" ? "24h" : "12h")}
-          title={timeFormat === "12h" ? "Switch to 24-hour format" : "Switch to 12-hour format"}
-        >
-          {timeFormat === "12h" ? "24h" : "12h"}
-        </button>
+        {optional && onClear && (
+          <button
+            type="button"
+            className="datetime-picker-clear-btn"
+            onClick={onClear}
+            title="Clear date and time"
+            tabIndex={-1}
+          >
+            Clear
+          </button>
+        )}
       </div>
     </div>
   );

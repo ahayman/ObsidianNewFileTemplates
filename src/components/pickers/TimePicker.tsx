@@ -11,7 +11,6 @@ import {
   generateHours,
   generateMinutes,
   parseTime,
-  formatTimeValue,
   getCurrentTime,
   roundMinutesToStep,
   TimeFormat,
@@ -28,6 +27,12 @@ interface TimePickerProps {
   minuteStep?: 1 | 5 | 15 | 30;
   /** Whether to auto-focus on mount (default: false) - reserved for future use */
   autoFocus?: boolean;
+  /** Whether the field is optional - shows clear button when true */
+  optional?: boolean;
+  /** Called when clear button is clicked */
+  onClear?: () => void;
+  /** Whether to show the Now button (default: true, set false when embedded in DateTimePicker) */
+  showNowButton?: boolean;
 }
 
 export function TimePicker({
@@ -36,6 +41,9 @@ export function TimePicker({
   format: initialFormat = "12h",
   minuteStep = 1,
   autoFocus: _autoFocus = false,
+  optional = false,
+  onClear,
+  showNowButton = true,
 }: TimePickerProps) {
   // Track current format (user can toggle)
   const [format, setFormat] = useState<TimeFormat>(initialFormat);
@@ -197,28 +205,38 @@ export function TimePicker({
         )}
       </div>
 
-      {/* Display current selection */}
-      <div className="time-picker-display" aria-live="polite">
-        {formatTimeValue(hours, minutes, format)}
-      </div>
-
-      {/* Footer with Now button and format toggle */}
-      <div className="time-picker-footer">
-        <button
-          type="button"
-          className="time-picker-now-btn"
-          onClick={handleNowClick}
-        >
-          Now
-        </button>
+      {/* Actions row below wheels */}
+      <div className="time-picker-actions">
+        {showNowButton && (
+          <button
+            type="button"
+            className="time-picker-now-btn"
+            onClick={handleNowClick}
+            tabIndex={-1}
+          >
+            Now
+          </button>
+        )}
         <button
           type="button"
           className="time-picker-format-toggle"
           onClick={() => setFormat(format === "12h" ? "24h" : "12h")}
           title={format === "12h" ? "Switch to 24-hour format" : "Switch to 12-hour format"}
+          tabIndex={-1}
         >
           {format === "12h" ? "24h" : "12h"}
         </button>
+        {optional && onClear && (
+          <button
+            type="button"
+            className="time-picker-clear-btn"
+            onClick={onClear}
+            title="Clear time"
+            tabIndex={-1}
+          >
+            Clear
+          </button>
+        )}
       </div>
     </div>
   );

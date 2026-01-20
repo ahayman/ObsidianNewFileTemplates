@@ -252,6 +252,8 @@ function FilePromptEntryView({
                   value={value}
                   onChange={(newValue) => handleValueChange(prompt.id, newValue)}
                   autoFocus={index === 0}
+                  optional={prompt.isOptional}
+                  onClear={() => handleValueChange(prompt.id, "")}
                 />
               ) : prompt.valueType === "time" ? (
                 <TimePicker
@@ -261,15 +263,16 @@ function FilePromptEntryView({
                     prompt.timeConfig?.outputFormat?.includes('A') ? '12h' : '24h'
                   }
                   autoFocus={index === 0}
+                  optional={prompt.isOptional}
+                  onClear={() => handleValueChange(prompt.id, "")}
                 />
               ) : prompt.valueType === "datetime" ? (
                 <DateTimePicker
                   value={value}
                   onChange={(newValue) => handleValueChange(prompt.id, newValue)}
-                  timeFormat={
-                    prompt.timeConfig?.outputFormat?.includes('A') ? '12h' : '24h'
-                  }
                   autoFocus={index === 0}
+                  optional={prompt.isOptional}
+                  onClear={() => handleValueChange(prompt.id, "")}
                 />
               ) : (
                 <input

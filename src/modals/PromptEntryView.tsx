@@ -370,6 +370,8 @@ export function PromptEntryView({
               value={value}
               onChange={(newValue) => handleValueChange(prompt.id, newValue)}
               autoFocus={globalIndex === 0}
+              optional={prompt.isOptional}
+              onClear={() => handleValueChange(prompt.id, "")}
             />
           </CollapsiblePicker>
         ) : prompt.valueType === "time" ? (
@@ -385,6 +387,8 @@ export function PromptEntryView({
                 prompt.timeConfig?.outputFormat?.includes('A') ? '12h' : '24h'
               }
               autoFocus={globalIndex === 0}
+              optional={prompt.isOptional}
+              onClear={() => handleValueChange(prompt.id, "")}
             />
           </CollapsiblePicker>
         ) : prompt.valueType === "datetime" ? (
@@ -395,11 +399,9 @@ export function PromptEntryView({
             <DateTimePicker
               value={value}
               onChange={(newValue) => handleValueChange(prompt.id, newValue)}
-              timeFormat={
-                // Show 12h picker if output format is 12h-based
-                prompt.timeConfig?.outputFormat?.includes('A') ? '12h' : '24h'
-              }
               autoFocus={globalIndex === 0}
+              optional={prompt.isOptional}
+              onClear={() => handleValueChange(prompt.id, "")}
             />
           </CollapsiblePicker>
         ) : prompt.valueType === "list" ? (

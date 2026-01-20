@@ -302,7 +302,7 @@ export function WheelColumn({
       onTouchEnd={handleTouchEnd}
       onWheel={handleWheel}
       onKeyDown={handleKeyDown}
-      tabIndex={0}
+      tabIndex={-1}
       role="listbox"
       aria-label={label}
       aria-activedescendant={`wheel-item-${selectedValue}`}
