@@ -1872,12 +1872,73 @@
   background: var(--background-modifier-hover);
 }
 
-.file-template-syntax-input .cm-completionLabel {
+/* Hide default CodeMirror completion elements - we use custom rendering */
+.file-template-syntax-input .cm-completionLabel,
+.file-template-syntax-input .cm-completionDetail {
+  display: none;
+}
+
+/* Custom completion item container */
+.file-template-syntax-input .cm-completion-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 0;
+}
+
+/* Main row with label and example */
+.file-template-syntax-input .cm-completion-main-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Completion label */
+.file-template-syntax-input .cm-completion-item-label {
+  font-family: var(--font-monospace);
+  font-weight: 500;
   color: var(--text-normal);
 }
 
-.file-template-syntax-input .cm-completionDetail {
+/* Example value (e.g., "2026-01-20") */
+.file-template-syntax-input .cm-completion-item-example {
+  font-family: var(--font-monospace);
+  font-size: 0.9em;
   color: var(--text-muted);
-  margin-left: 8px;
-  font-style: italic;
+}
+
+/* Description text */
+.file-template-syntax-input .cm-completion-item-description {
+  font-size: 0.85em;
+  color: var(--text-faint);
+}
+
+/* Preview item styling - non-selectable appearance */
+.file-template-syntax-input .cm-completion-item-preview {
+  background-color: var(--background-secondary);
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin: -2px -4px 4px -4px;
+  border-left: 3px solid var(--interactive-accent);
+}
+
+.file-template-syntax-input .cm-completion-item-preview .cm-completion-item-label {
+  color: var(--interactive-accent);
+  font-weight: 600;
+}
+
+.file-template-syntax-input .cm-completion-item-preview .cm-completion-item-description {
+  font-family: var(--font-monospace);
+  font-size: 0.8em;
+  color: var(--text-muted);
+}
+
+/* Prevent hover highlight on preview item */
+.file-template-syntax-input .cm-tooltip-autocomplete li:has(.cm-completion-item-preview):hover {
+  background: transparent;
+}
+
+/* Make preview item not look selectable */
+.file-template-syntax-input .cm-tooltip-autocomplete li[aria-selected]:has(.cm-completion-item-preview) {
+  background: transparent;
 }

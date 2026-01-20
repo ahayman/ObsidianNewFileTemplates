@@ -14,6 +14,7 @@ import {
   completionKeymap,
   CompletionContext,
   CompletionResult,
+  Completion,
 } from "@codemirror/autocomplete";
 import { Decoration, DecorationSet, ViewPlugin, ViewUpdate } from "@codemirror/view";
 import { RangeSetBuilder } from "@codemirror/state";
@@ -25,6 +26,7 @@ import {
   TIME_FORMAT_PRESETS,
 } from "../types";
 import { parseFormatString, MOMENT_TOKENS, getTokenExample } from "../utils/momentTokens";
+import { moment } from "obsidian";
 
 interface SyntaxInputProps {
   /** Current value */
@@ -328,10 +330,9 @@ function variableCompletions(context: CompletionContext): CompletionResult | nul
     from: word.from + 2,
     options: SUPPORTED_VARIABLES.map((v) => ({
       label: v,
-      type: "variable",
       apply: `${v}}}`,
-      detail: getVariableDescription(v),
-    })),
+      description: getVariableDescription(v),
+    } as CustomCompletion)),
   };
 }
 
@@ -354,6 +355,69 @@ export function getVariableDescription(variable: string): string {
 }
 
 /**
+ * Generate example date output for a format
+ */
+function getDateExample(format: string): string {
+  return moment().format(format);
+}
+
+/**
+ * Generate example time output for a format
+ */
+function getTimeExample(format: string): string {
+  return moment().format(format);
+}
+
+/**
+ * Custom completion option interface with additional display properties
+ */
+interface CustomCompletion extends Completion {
+  displayLabel?: string;
+  example?: string;
+  description?: string;
+  isPreview?: boolean;
+}
+
+/**
+ * Custom render function for completion items with inline details
+ */
+function renderCompletion(completion: Completion, _state: EditorState): Node | null {
+  const custom = completion as CustomCompletion;
+  const container = document.createElement("div");
+  container.className = custom.isPreview
+    ? "cm-completion-item cm-completion-item-preview"
+    : "cm-completion-item";
+
+  // Main row with label and example
+  const mainRow = document.createElement("div");
+  mainRow.className = "cm-completion-main-row";
+
+  const label = document.createElement("span");
+  label.className = "cm-completion-item-label";
+  label.textContent = custom.displayLabel || custom.label;
+  mainRow.appendChild(label);
+
+  if (custom.example && !custom.isPreview) {
+    const example = document.createElement("span");
+    example.className = "cm-completion-item-example";
+    example.textContent = custom.example;
+    mainRow.appendChild(example);
+  }
+
+  container.appendChild(mainRow);
+
+  // Description row
+  if (custom.description) {
+    const desc = document.createElement("div");
+    desc.className = "cm-completion-item-description";
+    desc.textContent = custom.description;
+    container.appendChild(desc);
+  }
+
+  return container;
+}
+
+/**
  * Prompt completions source
  */
 function promptCompletions(context: CompletionContext): CompletionResult | null {
@@ -365,12 +429,12 @@ function promptCompletions(context: CompletionContext): CompletionResult | null 
     return {
       from: context.pos,
       options: [
-        { label: "Name %}", type: "text", detail: "Text prompt" },
-        { label: "Name:text %}", type: "text", detail: "Explicit text" },
-        { label: "Name:number %}", type: "text", detail: "Numeric input" },
-        { label: "Name:date:", type: "text", detail: "Date picker" },
-        { label: "Name:time:", type: "text", detail: "Time picker" },
-        { label: "Name:datetime:", type: "text", detail: "DateTime picker" },
+        { label: "Name %}", description: "Text prompt" } as CustomCompletion,
+        { label: "Name:text %}", description: "Explicit text type" } as CustomCompletion,
+        { label: "Name:number %}", description: "Numeric input only" } as CustomCompletion,
+        { label: "Name:date:", description: "Date picker with format" } as CustomCompletion,
+        { label: "Name:time:", description: "Time picker with format" } as CustomCompletion,
+        { label: "Name:datetime:", description: "DateTime picker with format" } as CustomCompletion,
       ],
     };
   }
@@ -379,16 +443,22 @@ function promptCompletions(context: CompletionContext): CompletionResult | null 
   const typeMatch = text.match(/\{%\??\s*[^:%]+:\s*([a-z]*)$/i);
   if (typeMatch) {
     const query = typeMatch[1].toLowerCase();
-    const types = ["text", "number", "date", "time", "datetime"];
+    const typeOptions: Array<{ name: string; desc: string; apply: string }> = [
+      { name: "text", desc: "Free-form text input", apply: "text %}" },
+      { name: "number", desc: "Numeric input only", apply: "number %}" },
+      { name: "date", desc: "Date picker (add format)", apply: "date:" },
+      { name: "time", desc: "Time picker (add format)", apply: "time:" },
+      { name: "datetime", desc: "Date and time picker", apply: "datetime:" },
+    ];
     return {
       from: context.pos - query.length,
-      options: types
-        .filter((t) => t.startsWith(query))
+      options: typeOptions
+        .filter((t) => t.name.startsWith(query))
         .map((t) => ({
-          label: t,
-          type: "type",
-          apply: t === "text" || t === "number" ? `${t} %}` : `${t}:`,
-        })),
+          label: t.name,
+          apply: t.apply,
+          description: t.desc,
+        } as CustomCompletion)),
     };
   }
 
@@ -398,16 +468,17 @@ function promptCompletions(context: CompletionContext): CompletionResult | null 
     const valueType = formatMatch[1].toLowerCase();
     const query = formatMatch[2].toLowerCase();
 
-    const options: Array<{ label: string; type: string; apply: string; detail?: string }> = [];
+    const options: CustomCompletion[] = [];
 
     if (valueType === "date" || valueType === "datetime") {
       for (const [preset, format] of Object.entries(DATE_FORMAT_PRESETS)) {
         if (preset.toLowerCase().startsWith(query)) {
+          const example = getDateExample(format);
           options.push({
             label: preset,
-            type: "constant",
             apply: valueType === "datetime" ? `${preset},` : `${preset} %}`,
-            detail: format,
+            example: example,
+            description: `Format: ${format}`,
           });
         }
       }
@@ -416,11 +487,12 @@ function promptCompletions(context: CompletionContext): CompletionResult | null 
     if (valueType === "time" || valueType === "datetime") {
       for (const [preset, format] of Object.entries(TIME_FORMAT_PRESETS)) {
         if (preset.toLowerCase().startsWith(query)) {
+          const example = getTimeExample(format);
           options.push({
             label: preset,
-            type: "constant",
             apply: `${preset} %}`,
-            detail: format,
+            example: example,
+            description: `Format: ${format}`,
           });
         }
       }
@@ -429,9 +501,8 @@ function promptCompletions(context: CompletionContext): CompletionResult | null 
     if ("format".startsWith(query)) {
       options.push({
         label: "format(...)",
-        type: "function",
         apply: "format(",
-        detail: "Custom format",
+        description: "Custom moment.js format string",
       });
     }
 
@@ -481,13 +552,49 @@ function promptCompletions(context: CompletionContext): CompletionResult | null 
         )
       : sortedTokens;
 
+    const options: CustomCompletion[] = [];
+
+    // Add live preview at the top if there's any format content
+    if (formatContent) {
+      try {
+        const formattedPreview = moment().format(formatContent);
+        options.push({
+          label: formattedPreview,
+          displayLabel: `Preview: ${formattedPreview}`,
+          apply: "", // Don't insert anything when selecting preview
+          description: `Current format: ${formatContent}`,
+          isPreview: true,
+          boost: 99, // Ensure preview appears at top
+        });
+      } catch {
+        // If format is invalid, still show what we have
+        options.push({
+          label: "(invalid)",
+          displayLabel: "Preview: (invalid format)",
+          apply: "",
+          description: `Current format: ${formatContent}`,
+          isPreview: true,
+          boost: 99,
+        });
+      }
+    }
+
+    // Add token options with examples (already filtered manually above)
+    options.push(
+      ...filteredTokens.map((token) => {
+        const example = getTokenExample(token);
+        return {
+          label: token.token,
+          example: example,
+          description: token.description,
+        } as CustomCompletion;
+      })
+    );
+
     return {
       from: context.pos - query.length,
-      options: filteredTokens.map((token) => ({
-        label: token.token,
-        type: "keyword",
-        detail: `${token.description} (${getTokenExample(token)})`,
-      })),
+      options,
+      filter: false, // Disable CodeMirror filtering - we filter tokens manually above
     };
   }
 
@@ -560,6 +667,13 @@ export function SyntaxInput({
       autocompletion({
         override: completionSources,
         activateOnTyping: true,
+        addToOptions: [
+          {
+            render: renderCompletion,
+            position: 50, // After icons, before label
+          },
+        ],
+        icons: false, // Disable default icons
       }),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
